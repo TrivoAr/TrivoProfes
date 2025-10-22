@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run build:*)",
+      "Bash(move:*)",
+      "Bash(ren \"src\\ai\\genkit.ts\" \"genkit.ts.disabled\")",
+      "Bash(tee:*)",
+      "Bash(NODE_OPTIONS=\"--trace-warnings\" npm run build:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx next info:*)",
+      "Bash(node test-import.js:*)",
+      "Bash(node test-next-nanoid.js:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -15,134 +16,191 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FilePenLine, Trash2 } from "lucide-react";
-import type { Academy } from "@/lib/types";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, FilePenLine, Trash2, Eye, Plus } from "lucide-react";
+import type { Academy } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { AcademyFormDialog } from "@/components/forms/academy-form-dialog";
 
 export function AcademiesTable({ academies }: { academies: Academy[] }) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedAcademy, setSelectedAcademy] = useState<Academy | null>(null);
+  const router = useRouter();
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAcademy, setSelectedAcademy] = useState<Academy | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
+
+  const handleView = (id: string) => {
+    router.push(`/academies/${id}`);
+  };
 
   const handleEdit = (academy: Academy) => {
+    setEditingAcademy(academy);
+    setFormDialogOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingAcademy(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setFormDialogOpen(false);
+    setEditingAcademy(null);
+    router.refresh();
+  };
+
+  const openDeleteDialog = (academy: Academy) => {
     setSelectedAcademy(academy);
-    setIsDialogOpen(true);
-  };
-  
-  const handleCreateNew = () => {
-    setSelectedAcademy(null);
-    setIsDialogOpen(true);
+    setDeleteDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    toast({
-      title: "Academy Deleted",
-      description: `Academy with ID ${id} has been deleted.`,
-    });
-  };
+  const handleDelete = async () => {
+    if (!selectedAcademy) return;
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = formData.get("name") as string;
-    
-    toast({
-      title: selectedAcademy ? "Academy Updated" : "Academy Created",
-      description: `${name} has been successfully ${selectedAcademy ? 'updated' : 'created'}.`,
-    });
-    setIsDialogOpen(false);
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/academias/${selectedAcademy._id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al eliminar la academia");
+      }
+
+      toast({
+        title: "Academia eliminada",
+        description: `La academia "${selectedAcademy.nombre_academia}" ha sido eliminada exitosamente.`,
+      });
+
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la academia. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setSelectedAcademy(null);
+    }
   };
 
   return (
     <>
-      <div className="mb-6 flex justify-end">
-        <Button onClick={handleCreateNew}>Create New Academy</Button>
-      </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Discipline</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Memberships</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {academies.map((academy) => (
-              <TableRow key={academy.id}>
-                <TableCell className="font-medium">{academy.name}</TableCell>
-                <TableCell>{academy.discipline}</TableCell>
-                <TableCell>{academy.location}</TableCell>
-                <TableCell>{academy.memberships}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(academy)}>
-                        <FilePenLine className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(academy.id)} className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+      {academies.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">Aún no tienes una academia registrada</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Puedes crear una academia para gestionar tus clases y membresías.
+          </p>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Crear Mi Academia
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Disciplina</TableHead>
+                <TableHead>Ubicación</TableHead>
+                <TableHead>Precio</TableHead>
+                <TableHead>Clase Gratis</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {academies.map((academy) => (
+                <TableRow key={academy._id}>
+                  <TableCell className="font-medium">{academy.nombre_academia}</TableCell>
+                  <TableCell>{academy.tipo_disciplina}</TableCell>
+                  <TableCell>
+                    {academy.localidad}, {academy.provincia}
+                  </TableCell>
+                  <TableCell>{academy.precio ? `$${academy.precio}` : "Gratis"}</TableCell>
+                  <TableCell>
+                    <Badge variant={academy.clase_gratis ? "default" : "secondary"}>
+                      {academy.clase_gratis ? "Sí" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Abrir menú</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(academy._id)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver Detalles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(academy)}>
+                          <FilePenLine className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openDeleteDialog(academy)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{selectedAcademy ? "Edit Academy" : "Create New Academy"}</DialogTitle>
-            <DialogDescription>
-              {selectedAcademy ? "Update the details of the academy." : "Fill in the details for the new academy."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" name="name" defaultValue={selectedAcademy?.name} className="col-span-3" required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="discipline" className="text-right">Discipline</Label>
-                <Input id="discipline" name="discipline" defaultValue={selectedAcademy?.discipline} className="col-span-3" required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="location" className="text-right">Location</Label>
-                <Input id="location" name="location" defaultValue={selectedAcademy?.location} className="col-span-3" required />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Save changes</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la academia{" "}
+              <strong>"{selectedAcademy?.nombre_academia}"</strong> y todos sus datos asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AcademyFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        academy={editingAcademy}
+        onSuccess={handleFormSuccess}
+      />
     </>
   );
 }

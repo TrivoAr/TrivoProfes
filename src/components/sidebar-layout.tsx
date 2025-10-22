@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import type { NavItem } from "@/lib/types";
 import {
   SidebarProvider,
@@ -24,31 +26,60 @@ import {
   CreditCard,
   LogOut,
   Settings,
-  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/outings", label: "Social Outings", icon: PartyPopper },
-  { href: "/teams", label: "Teams", icon: Users },
-  { href: "/academies", label: "Academies", icon: School },
-  { href: "/members", label: "Members", icon: UserCheck },
-  { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/dashboard", label: "Panel Principal", icon: LayoutDashboard },
+  { href: "/outings", label: "Salidas Sociales", icon: PartyPopper },
+  { href: "/teams", label: "Equipos", icon: Users },
+  { href: "/academies", label: "Academias", icon: School },
+  { href: "/members", label: "Miembros", icon: UserCheck },
+  { href: "/payments", label: "Pagos", icon: CreditCard },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Configuración", icon: Settings },
 ];
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const [filteredNavItems, setFilteredNavItems] = useState<NavItem[]>([]);
+
+  // Filtrar items de navegación según el rol del usuario
+  // Usamos useEffect para evitar hydration errors
+  useEffect(() => {
+    if (status === "loading") return;
+
+    const filtered = navItems.filter(item => {
+      const userRole = session?.user?.rol;
+
+      // Para profesores y dueños de academia: dashboard, salidas y academias
+      if (userRole === "profe" || userRole === "dueñoAcademia") {
+        return item.href === "/dashboard" || item.href === "/outings" || item.href === "/academies";
+      }
+
+      // Para admins: todo
+      if (userRole === "admin") {
+        return true;
+      }
+
+      return false;
+    });
+
+    setFilteredNavItems(filtered);
+  }, [session, status]);
 
   const getPageTitle = () => {
-    const currentItem = navItems.find(item => pathname.startsWith(item.href));
-    return currentItem ? currentItem.label : "Dashboard";
+    const currentItem = filteredNavItems.find(item => pathname.startsWith(item.href));
+    return currentItem ? currentItem.label : "Panel Principal";
+  };
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
   };
 
   return (
@@ -64,7 +95,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
@@ -97,20 +128,22 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             ))}
              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Log Out">
+                <SidebarMenuButton onClick={handleLogout} tooltip="Cerrar Sesión">
                     <LogOut />
-                    <span>Log Out</span>
+                    <span>Cerrar Sesión</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           <div className="flex items-center gap-3 border-t border-sidebar-border p-3">
             <Avatar className="h-10 w-10">
-                <AvatarImage src="https://picsum.photos/seed/admin/100/100" alt="Admin" data-ai-hint="person face" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarImage src={session?.user?.imagen || "https://picsum.photos/seed/admin/100/100"} alt={session?.user?.firstname || "Admin"} data-ai-hint="person face" />
+                <AvatarFallback>{session?.user?.firstname?.[0] || "A"}{session?.user?.lastname?.[0] || "D"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-                <span className="font-semibold text-sm text-sidebar-foreground">Admin User</span>
-                <span className="text-xs text-muted-foreground">admin@trivo.com</span>
+                <span className="font-semibold text-sm text-sidebar-foreground">
+                  {session?.user?.firstname} {session?.user?.lastname}
+                </span>
+                <span className="text-xs text-muted-foreground">{session?.user?.email}</span>
             </div>
           </div>
         </SidebarFooter>
@@ -120,9 +153,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
            <SidebarTrigger className="md:hidden" />
            <div className="flex w-full items-center justify-between">
             <h2 className="text-xl font-semibold">{getPageTitle()}</h2>
-            <div className="relative ml-auto flex-1 md:grow-0">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search..." className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[320px]" />
+            <div className="flex items-center gap-2 ml-auto">
+              <NotificationCenter />
             </div>
            </div>
         </header>
