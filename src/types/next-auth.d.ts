@@ -9,6 +9,7 @@ declare module "next-auth" {
       lastname: string;
       rol: string;
       imagen?: string;
+      telnumber?: string;
     };
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     lastname: string;
     rol: string;
     imagen?: string;
+    telnumber?: string;
   }
 }
 
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
       lastname: string;
       rol: string;
       imagen?: string;
+      telnumber?: string;
     };
   }
 }

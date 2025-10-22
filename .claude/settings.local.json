@@ -15,7 +15,9 @@
       "Bash(npx next info:*)",
       "Bash(node test-import.js:*)",
       "Bash(node test-next-nanoid.js:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

@@ -71,7 +71,7 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
     sponsor_id: "",
   });
 
-  // Cargar sponsors y configuración de pagos al montar el componente
+  // Cargar sponsors, configuración de pagos y WhatsApp al montar el componente
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -87,12 +87,20 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
         if (configResponse.ok) {
           const configData = await configResponse.json();
 
-          // Establecer CBU y Alias por defecto
+          // Establecer CBU, Alias y Precio por defecto
           setFormData((prev) => ({
             ...prev,
             cbu: configData.cbuPorDefecto || "",
             alias: configData.aliasPorDefecto || "",
             precio: configData.precioPorDefecto || "",
+          }));
+        }
+
+        // Establecer teléfono del usuario si existe
+        if (session?.user?.telnumber) {
+          setFormData((prev) => ({
+            ...prev,
+            telefonoOrganizador: session.user.telnumber || "",
           }));
         }
       } catch (error) {
@@ -108,7 +116,7 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
     };
 
     fetchInitialData();
-  }, [toast]);
+  }, [toast, session]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -120,9 +128,10 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
   const handleSelectChange = async (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Si se selecciona un deporte, actualizar el precio según la configuración
+    // Si se selecciona un deporte, actualizar el precio y el link de WhatsApp según la configuración
     if (name === "deporte" && value) {
       try {
+        // Obtener configuración de pagos
         const configResponse = await fetch("/api/configuracion-pagos");
         if (configResponse.ok) {
           const configData = await configResponse.json();
@@ -135,8 +144,20 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
             setFormData((prev) => ({ ...prev, precio: configData.precioPorDefecto }));
           }
         }
+
+        // Obtener configuración de WhatsApp
+        const whatsappResponse = await fetch("/api/configuracion-whatsapp");
+        if (whatsappResponse.ok) {
+          const whatsappData = await whatsappResponse.json();
+          const grupoWhatsApp =
+            whatsappData.gruposPorDeporte?.[value as keyof typeof whatsappData.gruposPorDeporte];
+
+          if (grupoWhatsApp) {
+            setFormData((prev) => ({ ...prev, whatsappLink: grupoWhatsApp }));
+          }
+        }
       } catch (error) {
-        console.error("Error updating price:", error);
+        console.error("Error updating configurations:", error);
       }
     }
   };
@@ -598,14 +619,22 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="whatsappLink">Link de WhatsApp</Label>
+            <Label htmlFor="whatsappLink">Grupo de WhatsApp</Label>
             <Input
               id="whatsappLink"
               name="whatsappLink"
               value={formData.whatsappLink}
               onChange={handleInputChange}
-              placeholder="https://wa.me/5491112345678"
+              placeholder="Se asignará automáticamente según el deporte"
+              readOnly={!isAdmin}
+              disabled={!isAdmin}
+              className={!isAdmin ? "bg-muted cursor-not-allowed" : ""}
             />
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground">
+                Asignado automáticamente según el deporte seleccionado
+              </p>
+            )}
           </div>
         </div>
       </div>

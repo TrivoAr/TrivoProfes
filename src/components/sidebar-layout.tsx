@@ -37,12 +37,10 @@ const navItems: NavItem[] = [
   { href: "/teams", label: "Equipos", icon: Users },
   { href: "/academies", label: "Academias", icon: School },
   { href: "/members", label: "Miembros", icon: UserCheck },
-  { href: "/payments", label: "Pagos", icon: CreditCard },
+  { href: "/payments", label: "Configuraciones", icon: Settings },
 ];
 
-const bottomNavItems: NavItem[] = [
-  { href: "/settings", label: "Configuración", icon: Settings },
-];
+const bottomNavItems: NavItem[] = [];
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

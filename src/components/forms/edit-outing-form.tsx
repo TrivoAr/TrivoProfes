@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,7 @@ interface SalidaData {
 export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -69,6 +71,9 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+
+  // Verificar si el usuario es admin
+  const isAdmin = session?.user?.rol === "admin";
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -132,7 +137,8 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
           descripcion: data.descripcion || "",
           localidad: data.localidad || "",
           provincia: data.provincia || "",
-          telefonoOrganizador: data.telefonoOrganizador || "",
+          // Si la salida no tiene teléfono, usar el del usuario actual
+          telefonoOrganizador: data.telefonoOrganizador || session?.user?.telnumber || "",
           imagen: data.imagen || "",
           locationCoords: {
             lat: data.locationCoords?.lat,
@@ -198,8 +204,41 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = async (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Si se selecciona un deporte, actualizar el precio y el link de WhatsApp según la configuración
+    if (name === "deporte" && value) {
+      try {
+        // Obtener configuración de pagos
+        const configResponse = await fetch("/api/configuracion-pagos");
+        if (configResponse.ok) {
+          const configData = await configResponse.json();
+          const precioDeporte =
+            configData.preciosPorDeporte?.[value as keyof typeof configData.preciosPorDeporte];
+
+          if (precioDeporte) {
+            setFormData((prev) => ({ ...prev, precio: precioDeporte }));
+          } else if (configData.precioPorDefecto) {
+            setFormData((prev) => ({ ...prev, precio: configData.precioPorDefecto }));
+          }
+        }
+
+        // Obtener configuración de WhatsApp
+        const whatsappResponse = await fetch("/api/configuracion-whatsapp");
+        if (whatsappResponse.ok) {
+          const whatsappData = await whatsappResponse.json();
+          const grupoWhatsApp =
+            whatsappData.gruposPorDeporte?.[value as keyof typeof whatsappData.gruposPorDeporte];
+
+          if (grupoWhatsApp) {
+            setFormData((prev) => ({ ...prev, whatsappLink: grupoWhatsApp }));
+          }
+        }
+      } catch (error) {
+        console.error("Error updating configurations:", error);
+      }
+    }
   };
 
   const handleLocationSelect = (location: {
@@ -617,14 +656,22 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="whatsappLink">Link de WhatsApp</Label>
+            <Label htmlFor="whatsappLink">Grupo de WhatsApp</Label>
             <Input
               id="whatsappLink"
               name="whatsappLink"
               value={formData.whatsappLink}
               onChange={handleInputChange}
-              placeholder="https://wa.me/5491112345678"
+              placeholder="Se asignará automáticamente según el deporte"
+              readOnly={!isAdmin}
+              disabled={!isAdmin}
+              className={!isAdmin ? "bg-muted cursor-not-allowed" : ""}
             />
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground">
+                Asignado automáticamente según el deporte seleccionado
+              </p>
+            )}
           </div>
         </div>
       </div>
