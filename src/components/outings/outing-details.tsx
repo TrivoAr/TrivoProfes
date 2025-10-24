@@ -21,6 +21,8 @@ import {
   Trophy,
   MessageCircle,
   Building2,
+  Share2,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +140,24 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
     }
   };
 
+  const handleCopyLink = async () => {
+    const shareLink = `https://trivo.com.ar/s/${salida.shortId}`;
+
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      toast({
+        title: "Link copiado",
+        description: "El link de la salida ha sido copiado al portapapeles.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar el link. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -182,6 +202,14 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
         </Button>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCopyLink}
+            className="gap-2"
+          >
+            <Share2 className="h-4 w-4" />
+            Compartir Link
+          </Button>
           <Link href={`/outings/${salida._id}/edit`}>
             <Button variant="outline" className="gap-2">
               <Edit className="h-4 w-4" />

@@ -57,6 +57,8 @@ export function LocationPicker({
   initialProvincia,
   initialLocalidad,
 }: LocationPickerProps) {
+  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
   // Coordenadas de San Miguel de Tucumán
   const [viewport, setViewport] = useState({
     latitude: initialLocation?.lat || -26.8083,
@@ -206,19 +208,21 @@ export function LocationPicker({
       onLocationSelect({ lat, lng });
 
       // Reverse geocoding para obtener la dirección
-      fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.features && data.features.length > 0) {
-            const address = data.features[0].place_name;
-            onLocationSelect({ lat, lng, address });
-          }
-        })
-        .catch((err) => console.error("Error en reverse geocoding:", err));
+      if (MAPBOX_TOKEN) {
+        fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.features && data.features.length > 0) {
+              const address = data.features[0].place_name;
+              onLocationSelect({ lat, lng, address });
+            }
+          })
+          .catch((err) => console.error("Error en reverse geocoding:", err));
+      }
     },
-    [onLocationSelect]
+    [onLocationSelect, MAPBOX_TOKEN]
   );
 
   return (
@@ -274,25 +278,36 @@ export function LocationPicker({
         Selecciona una provincia y localidad, o haz clic en el mapa para elegir una ubicación precisa
       </p>
 
-      <div className="relative w-full h-[400px] rounded-lg overflow-hidden border">
-        <Map
-          ref={mapRef}
-          {...viewport}
-          onMove={(evt: any) => setViewport(evt.viewState)}
-          onClick={handleMapClick}
-          mapStyle="mapbox://styles/mapbox/streets-v12"
-          mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-        >
-          <NavigationControl position="top-right" />
-          {marker && (
-            <Marker latitude={marker.lat} longitude={marker.lng}>
-              <div className="relative">
-                <MapPin className="w-8 h-8 text-red-500 fill-red-500 animate-bounce" />
-              </div>
-            </Marker>
-          )}
-        </Map>
-      </div>
+      {!MAPBOX_TOKEN ? (
+        <div className="relative w-full h-[400px] rounded-lg overflow-hidden border bg-muted flex items-center justify-center">
+          <div className="text-center p-4">
+            <p className="text-sm font-medium text-destructive">Error de configuración</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              La variable NEXT_PUBLIC_MAPBOX_TOKEN no está configurada
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full h-[400px] rounded-lg overflow-hidden border">
+          <Map
+            ref={mapRef}
+            {...viewport}
+            onMove={(evt: any) => setViewport(evt.viewState)}
+            onClick={handleMapClick}
+            mapStyle="mapbox://styles/mapbox/streets-v12"
+            mapboxAccessToken={MAPBOX_TOKEN}
+          >
+            <NavigationControl position="top-right" />
+            {marker && (
+              <Marker latitude={marker.lat} longitude={marker.lng}>
+                <div className="relative">
+                  <MapPin className="w-8 h-8 text-red-500 fill-red-500 animate-bounce" />
+                </div>
+              </Marker>
+            )}
+          </Map>
+        </div>
+      )}
 
       {marker && (
         <div className="text-sm text-muted-foreground">

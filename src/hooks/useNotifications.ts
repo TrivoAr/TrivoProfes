@@ -56,7 +56,9 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
       const res = await fetch("/api/notificaciones?limit=50");
       if (!res.ok) {
-        throw new Error("Error al obtener notificaciones");
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Error response from API:", errorData);
+        throw new Error(errorData.error || "Error al obtener notificaciones");
       }
 
       const data = await res.json();
@@ -106,8 +108,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setNotificaciones(newNotificaciones);
       setUnreadCount(newUnreadCount);
     } catch (err: any) {
-      console.error("Error fetching notifications:", err);
+      // Solo loguear el error en desarrollo, no en producción
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching notifications:", err);
+      }
       setError(err.message);
+      // No mostrar toast de error para no molestar al usuario
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { ShareButton } from "@/components/outings/share-button";
 import { PartyPopper, Users, School, UserCheck, DollarSign, Edit, Trash2, UserPlus } from "lucide-react";
 import {
   Card,
@@ -144,7 +145,7 @@ async function getProfesorSalidas(userId: string) {
       .limit(5)
       .lean();
 
-    return salidas.map(s => ({
+    return salidas.map((s: any) => ({
       _id: s._id.toString(),
       nombre: s.nombre,
       fecha: s.fecha || "Sin fecha",
@@ -174,18 +175,18 @@ async function getAcademiaData(userId: string) {
 
     // Obtener miembros de la academia
     const miembros = await User.find({
-      academia_id: academia._id
+      academia_id: (academia as any)._id
     }).select('firstname lastname email imagen rol').limit(10).lean();
 
     return {
       academia: {
-        _id: academia._id.toString(),
-        nombre_academia: academia.nombre_academia,
-        tipo_disciplina: academia.tipo_disciplina,
-        localidad: academia.localidad,
-        provincia: academia.provincia,
+        _id: ((academia as any)._id).toString(),
+        nombre_academia: (academia as any).nombre_academia,
+        tipo_disciplina: (academia as any).tipo_disciplina,
+        localidad: (academia as any).localidad,
+        provincia: (academia as any).provincia,
       },
-      miembros: miembros.map(m => ({
+      miembros: miembros.map((m: any) => ({
         _id: m._id.toString(),
         firstname: m.firstname,
         lastname: m.lastname,
@@ -193,7 +194,7 @@ async function getAcademiaData(userId: string) {
         imagen: m.imagen,
         rol: m.rol,
       })),
-      totalMiembros: await User.countDocuments({ academia_id: academia._id }),
+      totalMiembros: await User.countDocuments({ academia_id: (academia as any)._id }),
     };
   } catch (error) {
     console.error("Error fetching academia data:", error);
@@ -271,13 +272,14 @@ export default async function DashboardPage() {
                         <TableCell>{salida.cupo} personas</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <ShareButton salidaId={salida._id} size="sm" showText={false} />
                             <Button asChild variant="outline" size="sm">
-                              <Link href={`/outings/${salida.shortId}`}>
+                              <Link href={`/outings/${salida._id}`}>
                                 Ver
                               </Link>
                             </Button>
                             <Button asChild variant="outline" size="sm">
-                              <Link href={`/outings/${salida.shortId}/edit`}>
+                              <Link href={`/outings/${salida._id}/edit`}>
                                 <Edit className="h-4 w-4" />
                               </Link>
                             </Button>
@@ -372,9 +374,12 @@ export default async function DashboardPage() {
                         <p className="font-medium text-sm">{salida.nombre}</p>
                         <p className="text-xs text-muted-foreground">{salida.fecha}</p>
                       </div>
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/outings/${salida.shortId}`}>Ver</Link>
-                      </Button>
+                      <div className="flex gap-1">
+                        <ShareButton salidaId={salida._id} size="sm" variant="ghost" showText={false} />
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/outings/${salida._id}`}>Ver</Link>
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   <Button asChild variant="outline" className="w-full" size="sm">

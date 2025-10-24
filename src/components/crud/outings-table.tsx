@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, FilePenLine, Trash2, Eye, Users } from "lucide-react";
+import { MoreHorizontal, FilePenLine, Trash2, Eye, Users, Share2 } from "lucide-react";
 import type { SocialOuting } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,24 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
 
   const handleMembers = (id: string) => {
     router.push(`/outings/${id}/miembros`);
+  };
+
+  const handleCopyLink = async (outing: SocialOuting) => {
+    const shareLink = `https://trivo.com.ar/s/${outing.shortId}`;
+
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      toast({
+        title: "Link copiado",
+        description: "El link de la salida ha sido copiado al portapapeles.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar el link. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const openDeleteDialog = (outing: SocialOuting) => {
@@ -254,6 +272,10 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
                             <Eye className="mr-2 h-4 w-4" />
                             Ver Detalles
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCopyLink(outing)}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Compartir Link
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleMembers(outing._id)}>
                             <Users className="mr-2 h-4 w-4" />
                             Gestionar Miembros
@@ -348,6 +370,10 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleCopyLink(outing)}>
+                          <Share2 className="mr-2 h-4 w-4" />
+                          Compartir Link
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(outing._id)}>
                           <FilePenLine className="mr-2 h-4 w-4" />
                           Editar
