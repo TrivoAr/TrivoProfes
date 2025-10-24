@@ -109,6 +109,9 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
 
   // Scroll suave a la sección de miembros si viene del hash
   useEffect(() => {
+    // Solo ejecutar en el cliente
+    if (typeof window === "undefined") return;
+
     const hash = window.location.hash;
     if (hash === "#miembros") {
       const element = document.getElementById("miembros");

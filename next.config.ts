@@ -2,10 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  generateBuildId: async () => {
-    // Return null to use Next.js default build ID generation
-    return null;
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

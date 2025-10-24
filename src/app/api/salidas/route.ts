@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/authOptions";
 import { connectDB } from "@/lib/mongodb";
 import SalidaSocial from "@/models/SalidaSocial";
 import MiembroSalida from "@/models/MiembroSalida";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
+const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 8);
 
 // GET /api/salidas - Listar salidas del usuario logueado
 export async function GET() {
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     }
 
     // Generar shortId único
-    const shortId = nanoid(8);
+    const shortId = nanoid();
 
     const nuevaSalida = await SalidaSocial.create({
       ...body,
