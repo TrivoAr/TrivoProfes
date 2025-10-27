@@ -18,11 +18,18 @@ import { Loader2, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { ImageService } from "@/services/ImageService";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  getTiposGrupoPorDisciplina,
+  DURACIONES_ENTRENAMIENTO,
+  NIVELES_DIFICULTAD,
+} from "@/lib/grupo-helpers";
+import { LocationPicker } from "@/components/map/location-picker";
 
 interface GroupFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   academiaId: string;
+  tipoDisciplina?: string;
   group?: any;
   onSuccess?: () => void;
 }
@@ -41,6 +48,7 @@ export function GroupFormDialog({
   open,
   onOpenChange,
   academiaId,
+  tipoDisciplina,
   group,
   onSuccess,
 }: GroupFormDialogProps) {
@@ -59,6 +67,10 @@ export function GroupFormDialog({
     descripcion: "",
     tipo_grupo: "",
     tiempo_promedio: "",
+    locationCoords: {
+      lat: undefined as number | undefined,
+      lng: undefined as number | undefined,
+    },
   });
 
   // Cargar datos del grupo si estamos editando
@@ -73,6 +85,10 @@ export function GroupFormDialog({
         descripcion: group.descripcion || "",
         tipo_grupo: group.tipo_grupo || "",
         tiempo_promedio: group.tiempo_promedio || "",
+        locationCoords: {
+          lat: group.locationCoords?.lat,
+          lng: group.locationCoords?.lng,
+        },
       });
 
       if (group.imagen) {
@@ -89,6 +105,10 @@ export function GroupFormDialog({
         descripcion: "",
         tipo_grupo: "",
         tiempo_promedio: "",
+        locationCoords: {
+          lat: undefined,
+          lng: undefined,
+        },
       });
       setImageFile(null);
       setImagePreview(null);
@@ -96,7 +116,7 @@ export function GroupFormDialog({
   }, [group, open]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -109,6 +129,21 @@ export function GroupFormDialog({
         : [...prev.dias, dia];
       return { ...prev, dias };
     });
+  };
+
+  const handleLocationSelect = (location: {
+    lat: number;
+    lng: number;
+    address?: string;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      locationCoords: {
+        lat: location.lat,
+        lng: location.lng,
+      },
+      ubicacion: location.address || prev.ubicacion,
+    }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +214,13 @@ export function GroupFormDialog({
         descripcion: formData.descripcion || undefined,
         tipo_grupo: formData.tipo_grupo || undefined,
         tiempo_promedio: formData.tiempo_promedio || undefined,
+        locationCoords:
+          formData.locationCoords.lat && formData.locationCoords.lng
+            ? {
+                lat: formData.locationCoords.lat,
+                lng: formData.locationCoords.lng,
+              }
+            : undefined,
       };
 
       // Crear o actualizar grupo
@@ -287,24 +329,36 @@ export function GroupFormDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="nivel">Nivel</Label>
-                <Input
+                <select
                   id="nivel"
                   name="nivel"
                   value={formData.nivel}
                   onChange={handleInputChange}
-                  placeholder="Ej: Principiante, Intermedio, Avanzado"
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {NIVELES_DIFICULTAD.map((nivel) => (
+                    <option key={nivel.value} value={nivel.value}>
+                      {nivel.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="tipo_grupo">Tipo de Grupo</Label>
-                <Input
+                <select
                   id="tipo_grupo"
                   name="tipo_grupo"
                   value={formData.tipo_grupo}
                   onChange={handleInputChange}
-                  placeholder="Ej: Competición, Recreativo"
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {getTiposGrupoPorDisciplina(tipoDisciplina).map((tipo) => (
+                    <option key={tipo.value} value={tipo.value}>
+                      {tipo.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -360,13 +414,19 @@ export function GroupFormDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="tiempo_promedio">Tiempo Promedio</Label>
-                <Input
+                <select
                   id="tiempo_promedio"
                   name="tiempo_promedio"
                   value={formData.tiempo_promedio}
                   onChange={handleInputChange}
-                  placeholder="Ej: 1h 30min"
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {DURACIONES_ENTRENAMIENTO.map((duracion) => (
+                    <option key={duracion.value} value={duracion.value}>
+                      {duracion.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -383,6 +443,21 @@ export function GroupFormDialog({
                 value={formData.ubicacion}
                 onChange={handleInputChange}
                 placeholder="Ej: Plaza Independencia"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Seleccionar ubicación en el mapa</Label>
+              <LocationPicker
+                onLocationSelect={handleLocationSelect}
+                initialLocation={
+                  formData.locationCoords.lat && formData.locationCoords.lng
+                    ? {
+                        lat: formData.locationCoords.lat,
+                        lng: formData.locationCoords.lng,
+                      }
+                    : undefined
+                }
               />
             </div>
           </div>

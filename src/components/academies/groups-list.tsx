@@ -48,9 +48,10 @@ import { AttendanceHistoryDialog } from "@/components/academies/attendance-histo
 interface GroupsListProps {
   academiaId: string;
   grupos: any[];
+  tipoDisciplina?: string;
 }
 
-export function GroupsList({ academiaId, grupos: initialGrupos }: GroupsListProps) {
+export function GroupsList({ academiaId, grupos: initialGrupos, tipoDisciplina }: GroupsListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [grupos, setGrupos] = useState(initialGrupos);
@@ -298,6 +299,7 @@ export function GroupsList({ academiaId, grupos: initialGrupos }: GroupsListProp
         open={formDialogOpen}
         onOpenChange={setFormDialogOpen}
         academiaId={academiaId}
+        tipoDisciplina={tipoDisciplina}
         group={editingGroup}
         onSuccess={handleFormSuccess}
       />

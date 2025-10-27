@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import SalidaSocial from "@/models/SalidaSocial";
-import MiembroSalida from "@/models/MiembroSalida";
-import Pago from "@/models/Pago";
-import { MembersManagement } from "@/components/outings/members-management";
+import { MembersManagementClient } from "@/components/outings/members-management-client";
 
 interface MembersPageProps {
   params: Promise<{
@@ -11,7 +9,7 @@ interface MembersPageProps {
   }>;
 }
 
-async function getSalidaWithMembers(id: string) {
+async function getSalida(id: string) {
   try {
     await connectDB();
 
@@ -23,30 +21,20 @@ async function getSalidaWithMembers(id: string) {
       return null;
     }
 
-    // Obtener todos los miembros con sus pagos
-    const miembros = await MiembroSalida.find({ salida_id: id })
-      .populate("usuario_id", "firstname lastname email imagen")
-      .populate("pago_id")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return {
-      salida: JSON.parse(JSON.stringify(salida)),
-      miembros: JSON.parse(JSON.stringify(miembros)),
-    };
+    return JSON.parse(JSON.stringify(salida));
   } catch (error) {
-    console.error("Error fetching salida with members:", error);
+    console.error("Error fetching salida:", error);
     return null;
   }
 }
 
 export default async function MembersPage({ params }: MembersPageProps) {
   const { id } = await params;
-  const data = await getSalidaWithMembers(id);
+  const salida = await getSalida(id);
 
-  if (!data) {
+  if (!salida) {
     notFound();
   }
 
-  return <MembersManagement salida={data.salida} miembros={data.miembros} />;
+  return <MembersManagementClient salidaId={id} salida={salida} />;
 }

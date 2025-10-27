@@ -261,7 +261,7 @@ export function AcademyDetails({ academia, grupos }: AcademyDetailsProps) {
         </Card>
 
         {/* Grupos de la academia */}
-        <GroupsList academiaId={academia._id} grupos={grupos} />
+        <GroupsList academiaId={academia._id} grupos={grupos} tipoDisciplina={academia.tipo_disciplina} />
 
         {/* Suscripciones de la academia */}
         <SubscriptionsList academiaId={academia._id} />

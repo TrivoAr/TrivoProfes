@@ -27,7 +27,8 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/notifications/notification-center";
 
@@ -134,8 +135,19 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
           <div className="flex items-center gap-3 border-t border-sidebar-border p-3">
             <Avatar className="h-10 w-10">
-                <AvatarImage src={session?.user?.imagen || "https://picsum.photos/seed/admin/100/100"} alt={session?.user?.firstname || "Admin"} data-ai-hint="person face" />
-                <AvatarFallback>{session?.user?.firstname?.[0] || "A"}{session?.user?.lastname?.[0] || "D"}</AvatarFallback>
+                {session?.user?.imagen ? (
+                  <Image
+                    src={session.user.imagen}
+                    alt={session?.user?.firstname || "Admin"}
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
+                    loading="lazy"
+                    quality={75}
+                  />
+                ) : (
+                  <AvatarFallback>{session?.user?.firstname?.[0] || "A"}{session?.user?.lastname?.[0] || "D"}</AvatarFallback>
+                )}
             </Avatar>
             <div className="flex flex-col">
                 <span className="font-semibold text-sm text-sidebar-foreground">

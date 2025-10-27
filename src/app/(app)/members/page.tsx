@@ -1,41 +1,7 @@
 import { PageHeader } from "@/components/page-header";
-import { MembersTable } from "@/components/crud/members-table";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import type { User as UserType } from "@/lib/types";
+import { MembersTableSimple } from "@/components/crud/members-table-simple";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-
-async function getUsers() {
-  try {
-    await connectDB();
-
-    const users = await User.find()
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const serializedUsers = users.map((user: any) => ({
-      _id: user._id.toString(),
-      email: user.email,
-      firstname: user.firstname,
-      lastname: user.lastname,
-      rol: user.rol,
-      telnumber: user.telnumber,
-      imagen: user.imagen,
-      bio: user.bio,
-      instagram: user.instagram,
-      facebook: user.facebook,
-      twitter: user.twitter,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    }));
-
-    return JSON.parse(JSON.stringify(serializedUsers)) as UserType[];
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return [];
-  }
-}
 
 export default async function MembersPage() {
   const session = await getServerSession(authOptions);
@@ -60,15 +26,13 @@ export default async function MembersPage() {
     );
   }
 
-  const users = await getUsers();
-
   return (
     <>
       <PageHeader
         title="Usuarios"
-        description="Gestiona todos los usuarios registrados en la plataforma."
+        description="Gestiona todos los usuarios registrados en la plataforma. Busca, filtra y navega de forma eficiente."
       />
-      <MembersTable members={users} />
+      <MembersTableSimple />
     </>
   );
 }

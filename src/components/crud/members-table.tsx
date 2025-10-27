@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { UserFormDialog } from "@/components/forms/user-form-dialog";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 type SortField = "firstname" | "email" | "rol" | "createdAt";
 type SortOrder = "asc" | "desc";
@@ -304,16 +305,11 @@ export function MembersTable({ members: initialMembers }: { members: User[] }) {
                   <TableRow key={member._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage
-                            src={member.imagen || `https://ui-avatars.com/api/?name=${member.firstname}+${member.lastname}`}
-                            alt={`${member.firstname} ${member.lastname}`}
-                            data-ai-hint="person face"
-                          />
-                          <AvatarFallback>
-                            {member.firstname[0]}{member.lastname[0]}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          userId={member._id}
+                          firstName={member.firstname}
+                          lastName={member.lastname}
+                        />
                         <div className="grid gap-0.5">
                           <p className="font-medium">
                             {member.firstname} {member.lastname}
@@ -387,16 +383,12 @@ export function MembersTable({ members: initialMembers }: { members: User[] }) {
               <div key={member._id} className="border rounded-lg p-4 space-y-4 bg-card">
                 {/* Header con avatar y usuario */}
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-12 w-12 flex-shrink-0">
-                    <AvatarImage
-                      src={member.imagen || `https://ui-avatars.com/api/?name=${member.firstname}+${member.lastname}`}
-                      alt={`${member.firstname} ${member.lastname}`}
-                      data-ai-hint="person face"
-                    />
-                    <AvatarFallback>
-                      {member.firstname[0]}{member.lastname[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    userId={member._id}
+                    firstName={member.firstname}
+                    lastName={member.lastname}
+                    className="h-12 w-12 rounded-full object-cover border shadow-sm flex-shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-base">
                       {member.firstname} {member.lastname}

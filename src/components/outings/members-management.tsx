@@ -354,16 +354,15 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
                     <TableRow key={miembro._id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage
-                              src={miembro.usuario_id.imagen}
-                              alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
-                            />
-                            <AvatarFallback>
-                              {miembro.usuario_id.firstname[0]}
-                              {miembro.usuario_id.lastname[0]}
-                            </AvatarFallback>
-                          </Avatar>
+                          <img
+                            src={miembro.usuario_id.imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`}
+                            alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
+                            className="h-10 w-10 rounded-full object-cover border shadow-sm"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`;
+                            }}
+                          />
                           <div>
                             <p className="font-medium">
                               {miembro.usuario_id.firstname}{" "}
@@ -430,16 +429,15 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
                   <div key={miembro._id} className="border rounded-lg p-4 space-y-3">
                     {/* Header del participante */}
                     <div className="flex items-start gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage
-                          src={miembro.usuario_id.imagen}
-                          alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
-                        />
-                        <AvatarFallback>
-                          {miembro.usuario_id.firstname[0]}
-                          {miembro.usuario_id.lastname[0]}
-                        </AvatarFallback>
-                      </Avatar>
+                      <img
+                        src={miembro.usuario_id.imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`}
+                        alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
+                        className="h-12 w-12 rounded-full object-cover border shadow-sm flex-shrink-0"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`;
+                        }}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-base truncate">
                           {miembro.usuario_id.firstname}{" "}
