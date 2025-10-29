@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +16,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { LocationPicker } from "@/components/map/location-picker";
-import { AddressAutocomplete } from "@/components/map/address-autocomplete";
 import { Loader2, Upload, X } from "lucide-react";
 import { ImageService } from "@/services/ImageService";
 import Image from "next/image";
 import { DIFICULTAD_OPTIONS } from "@/lib/constants/salidas";
+
+// Lazy load componentes pesados (mapas y geolocalización)
+const LocationPicker = dynamic(() => import("@/components/map/location-picker").then(mod => ({ default: mod.LocationPicker })), {
+  loading: () => <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/50"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>,
+  ssr: false
+});
+
+const AddressAutocomplete = dynamic(() => import("@/components/map/address-autocomplete").then(mod => ({ default: mod.AddressAutocomplete })), {
+  loading: () => <div className="h-10 flex items-center justify-center border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>,
+  ssr: false
+});
 
 interface CreateOutingFormProps {
   onSuccess?: () => void;
@@ -75,15 +85,21 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // Cargar sponsors
-        const sponsorsResponse = await fetch("/api/sponsors");
-        const sponsorsData = await sponsorsResponse.json();
-        if (sponsorsData.success) {
-          setSponsors(sponsorsData.sponsors);
+        // Cargar todos los datos en paralelo para mejorar performance
+        const [sponsorsResponse, configResponse] = await Promise.all([
+          fetch("/api/sponsors"),
+          fetch("/api/configuracion-pagos"),
+        ]);
+
+        // Procesar sponsors
+        if (sponsorsResponse.ok) {
+          const sponsorsData = await sponsorsResponse.json();
+          if (sponsorsData.success) {
+            setSponsors(sponsorsData.sponsors);
+          }
         }
 
-        // Cargar configuración de pagos
-        const configResponse = await fetch("/api/configuracion-pagos");
+        // Procesar configuración de pagos
         if (configResponse.ok) {
           const configData = await configResponse.json();
 
@@ -93,11 +109,10 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
             cbu: configData.cbuPorDefecto || "",
             alias: configData.aliasPorDefecto || "",
             precio: configData.precioPorDefecto || "",
+            telefonoOrganizador: session?.user?.telnumber || prev.telefonoOrganizador,
           }));
-        }
-
-        // Establecer teléfono del usuario si existe
-        if (session?.user?.telnumber) {
+        } else if (session?.user?.telnumber) {
+          // Si falla config pero tenemos teléfono, establecerlo
           setFormData((prev) => ({
             ...prev,
             telefonoOrganizador: session.user.telnumber || "",

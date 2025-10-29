@@ -3,10 +3,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
+    ignoreBuildErrors: true, // TODO: Fix TypeScript errors and set to false
   },
   // Optimize performance
   compiler: {
@@ -49,12 +46,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'ui-avatars.com',
         port: '',
-        pathname: '/**',
+        pathname: '/api/**',
       },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    minimumCacheTTL: 60,
   },
   // Enable modern bundling
   experimental: {
@@ -66,6 +66,14 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-select',
       '@radix-ui/react-toast',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-alert-dialog',
+      'recharts',
+      'date-fns',
+      'react-day-picker',
+      'mapbox-gl',
+      'react-map-gl',
     ],
   },
 };

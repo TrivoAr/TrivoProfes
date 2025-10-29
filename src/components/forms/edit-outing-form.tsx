@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +16,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { LocationPicker } from "@/components/map/location-picker";
-import { AddressAutocomplete } from "@/components/map/address-autocomplete";
 import { Loader2, Upload, X } from "lucide-react";
 import { ImageService } from "@/services/ImageService";
 import Image from "next/image";
 import { DIFICULTAD_OPTIONS } from "@/lib/constants/salidas";
+
+// Lazy load componentes pesados (mapas y geolocalización)
+const LocationPicker = dynamic(() => import("@/components/map/location-picker").then(mod => ({ default: mod.LocationPicker })), {
+  loading: () => <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/50"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>,
+  ssr: false
+});
+
+const AddressAutocomplete = dynamic(() => import("@/components/map/address-autocomplete").then(mod => ({ default: mod.AddressAutocomplete })), {
+  loading: () => <div className="h-10 flex items-center justify-center border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>,
+  ssr: false
+});
 
 interface EditOutingFormProps {
   salidaId: string;

@@ -37,6 +37,7 @@ import {
   OutingsFiltersComponent,
   type OutingsFilters,
 } from "./outings-filters";
+import { OutingTableRow } from "./outings-table-row";
 
 export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
   const router = useRouter();
@@ -234,69 +235,18 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOutings.map((outing) => {
-                  const estado = getEstado(outing);
-                  return (
-                    <TableRow key={outing._id}>
-                    <TableCell className="font-medium">{outing.nombre}</TableCell>
-                    <TableCell>{outing.deporte || "Sin especificar"}</TableCell>
-                    <TableCell>{formatFechaHora(outing.fecha, outing.hora)}</TableCell>
-                    <TableCell>
-                      {outing.localidad && outing.provincia
-                        ? `${outing.localidad}, ${outing.provincia}`
-                        : outing.localidad || outing.provincia || "Sin ubicación"}
-                    </TableCell>
-                    <TableCell>
-                      <span className={outing.participantes === outing.cupo ? "text-red-600 font-semibold" : ""}>
-                        {outing.participantes || 0}/{outing.cupo}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={estado === "activa" ? "default" : "secondary"}
-                        className={estado === "activa" ? "bg-green-500/20 text-green-700" : ""}
-                      >
-                        {estado === "activa" ? "Activa" : "Finalizada"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menú</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleView(outing._id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver Detalles
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCopyLink(outing)}>
-                            <Share2 className="mr-2 h-4 w-4" />
-                            Compartir Link
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleMembers(outing._id)}>
-                            <Users className="mr-2 h-4 w-4" />
-                            Gestionar Miembros
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(outing._id)}>
-                            <FilePenLine className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => openDeleteDialog(outing)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                {filteredOutings.map((outing) => (
+                  <OutingTableRow
+                    key={outing._id}
+                    outing={outing}
+                    estado={getEstado(outing)}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onMembers={handleMembers}
+                    onCopyLink={handleCopyLink}
+                    onDelete={openDeleteDialog}
+                  />
+                ))}
               </TableBody>
             </Table>
           </div>
