@@ -1,7 +1,12 @@
 import type {NextConfig} from 'next';
+import crypto from 'crypto';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Custom build ID generator to avoid nanoid issues
+  generateBuildId: async () => {
+    return crypto.randomBytes(16).toString('hex');
+  },
   typescript: {
     ignoreBuildErrors: true, // TODO: Fix TypeScript errors and set to false
   },
