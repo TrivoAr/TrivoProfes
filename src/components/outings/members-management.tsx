@@ -212,35 +212,33 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
+    <div className="container mx-auto py-4 sm:py-6 px-4 max-w-7xl">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/outings/${salida._id}`)}
-            className="gap-2 self-start"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">{salida.nombre}</h1>
-            <p className="text-sm text-muted-foreground">Gestión de Participantes</p>
-          </div>
+      <div className="flex flex-col gap-4 mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => router.push(`/outings/${salida._id}`)}
+          className="gap-2 self-start"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold break-words">{salida.nombre}</h1>
+          <p className="text-sm text-muted-foreground">Gestión de Participantes</p>
         </div>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4 mb-6">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               Total Miembros
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">
               Cupo: {stats.aprobados}/{salida.cupo}
             </p>
@@ -248,39 +246,39 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-green-600">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-600">
               Aprobados
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {stats.aprobados}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-orange-600">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-orange-600">
               Pendientes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-xl sm:text-2xl font-bold text-orange-600">
               {stats.pendientes}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-red-600">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-red-600">
               Rechazados
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-xl sm:text-2xl font-bold text-red-600">
               {stats.rechazados}
             </div>
           </CardContent>
@@ -424,51 +422,57 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
               </div>
 
               {/* Vista Móvil - Cards */}
-              <div className="md:hidden space-y-4">
+              <div className="md:hidden space-y-3">
                 {filteredMiembros.map((miembro) => (
-                  <div key={miembro._id} className="border rounded-lg p-4 space-y-3">
+                  <div key={miembro._id} className="border rounded-lg p-3 space-y-3">
                     {/* Header del participante */}
                     <div className="flex items-start gap-3">
                       <img
                         src={miembro.usuario_id.imagen || `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`}
                         alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
-                        className="h-12 w-12 rounded-full object-cover border shadow-sm flex-shrink-0"
+                        className="h-10 w-10 rounded-full object-cover border shadow-sm flex-shrink-0"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(miembro.usuario_id.firstname + ' ' + miembro.usuario_id.lastname)}&length=1&background=random&color=fff&size=128`;
                         }}
                       />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-base truncate">
-                          {miembro.usuario_id.firstname}{" "}
-                          {miembro.usuario_id.lastname}
-                        </p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {miembro.usuario_id.email}
-                        </p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm break-words">
+                              {miembro.usuario_id.firstname}{" "}
+                              {miembro.usuario_id.lastname}
+                            </p>
+                            <p className="text-xs text-muted-foreground break-all">
+                              {miembro.usuario_id.email}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            {getEstadoBadge(miembro.estado)}
+                          </div>
+                        </div>
                         {miembro.rol === "organizador" && (
-                          <Badge variant="outline" className="text-xs mt-1">
+                          <Badge variant="outline" className="text-xs mt-1.5">
                             Organizador
                           </Badge>
                         )}
                       </div>
-                      {getEstadoBadge(miembro.estado)}
                     </div>
 
                     {/* Información */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fecha de unión:</span>
-                        <span className="font-medium">
+                    <div className="space-y-2 text-xs border-t pt-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-muted-foreground font-medium">Fecha de unión:</span>
+                        <span className="text-foreground">
                           {format(new Date(miembro.fecha_union), "PP", {
                             locale: es,
                           })}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tipo de pago:</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-muted-foreground font-medium">Tipo de pago:</span>
                         {miembro.pago_id ? (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs w-fit">
                             {miembro.pago_id.tipoPago === "transferencia"
                               ? "Transferencia"
                               : "MercadoPago"}
@@ -494,7 +498,7 @@ export function MembersManagement({ salida, miembros }: MembersManagementProps) 
                         </Button>
                       )}
                     {miembro.estado === "aprobado" && (
-                      <div className="text-center text-sm text-green-600 font-medium">
+                      <div className="text-center text-xs text-green-600 font-medium py-1">
                         ✓ Confirmado
                       </div>
                     )}

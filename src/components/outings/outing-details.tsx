@@ -22,7 +22,6 @@ import {
   MessageCircle,
   Building2,
   Share2,
-  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -189,67 +188,68 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
+    <div className="w-full mx-auto py-3 sm:py-4 lg:py-6 px-0 min-w-0">
       {/* Header con acciones */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-2 mb-3 sm:mb-4 lg:mb-6">
         <Button
           variant="ghost"
           onClick={() => router.back()}
-          className="gap-2"
+          className="gap-2 self-start h-8 text-xs sm:text-sm"
+          size="sm"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Volver
         </Button>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={handleCopyLink}
-            className="gap-2"
+            className="flex-1 sm:flex-initial h-7 sm:h-8 px-1.5 sm:px-3 text-xs min-w-0"
+            size="sm"
           >
-            <Share2 className="h-4 w-4" />
-            Compartir Link
+            <Share2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline text-xs">Compartir</span>
           </Button>
-          <Link href={`/outings/${salida._id}/edit`}>
-            <Button variant="outline" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Editar
+          <Link href={`/outings/${salida._id}/edit`} className="flex-1 sm:flex-initial min-w-0">
+            <Button variant="outline" className="w-full h-7 sm:h-8 px-1.5 sm:px-3 text-xs min-w-0" size="sm">
+              <Edit className="h-3 w-3 sm:h-3.5 sm:w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline text-xs">Editar</span>
             </Button>
           </Link>
           <Button
             variant="destructive"
             onClick={() => setDeleteDialogOpen(true)}
-            className="gap-2"
+            className="flex-1 sm:flex-initial h-7 sm:h-8 px-1.5 sm:px-3 text-xs min-w-0"
+            size="sm"
           >
-            <Trash2 className="h-4 w-4" />
-            Eliminar
+            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline text-xs">Eliminar</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 lg:gap-6 lg:grid-cols-3 min-w-0">
         {/* Columna Principal */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6 min-w-0">
           {/* Información Principal */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-3xl">{salida.nombre}</CardTitle>
-                    {getEstadoBadge()}
-                  </div>
-                  {salida.deporte && (
-                    <Badge variant="outline">{salida.deporte}</Badge>
-                  )}
+          <Card className="overflow-hidden min-w-0">
+            <CardHeader className="p-2.5 sm:p-3 lg:p-6">
+              <div className="space-y-1.5 sm:space-y-2 min-w-0">
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <CardTitle className="text-sm sm:text-base lg:text-xl break-words flex-1 min-w-0">{salida.nombre}</CardTitle>
+                  <div className="flex-shrink-0">{getEstadoBadge()}</div>
                 </div>
+                {salida.deporte && (
+                  <Badge variant="outline" className="text-xs">{salida.deporte}</Badge>
+                )}
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-2.5 sm:space-y-3 lg:space-y-6 p-2.5 sm:p-3 lg:p-6 min-w-0">
               {/* Imagen */}
               {salida.imagen && (
-                <div className="relative w-full h-80 rounded-lg overflow-hidden">
+                <div className="relative w-full h-48 sm:h-64 lg:h-80 rounded-lg overflow-hidden">
                   <Image
                     src={salida.imagen}
                     alt={salida.nombre}
@@ -262,8 +262,8 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
               {/* Descripción */}
               {salida.descripcion && (
                 <div>
-                  <h3 className="font-semibold mb-2">Descripción</h3>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
+                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Descripción</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground whitespace-pre-wrap break-words">
                     {salida.descripcion}
                   </p>
                 </div>
@@ -410,50 +410,50 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
           </Card>
 
           {/* Miembros */}
-          <Card id="miembros">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+          <Card id="miembros" className="min-w-0">
+            <CardHeader className="p-2.5 sm:p-3 lg:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                 Participantes ({miembrosAprobados.length}/{salida.cupo})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2.5 sm:p-3 lg:p-6 min-w-0">
               {miembros.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   Aún no hay participantes en esta salida
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4 min-w-0">
                   {/* Miembros aprobados */}
                   {miembrosAprobados.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Confirmados</h4>
-                      <div className="grid gap-3">
+                    <div className="min-w-0">
+                      <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">Confirmados</h4>
+                      <div className="grid gap-2 sm:gap-3 min-w-0">
                         {miembrosAprobados.map((miembro) => (
                           <div
                             key={miembro._id}
-                            className="flex items-center gap-3 p-3 rounded-lg border"
+                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border min-w-0"
                           >
-                            <Avatar>
+                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                               <AvatarImage
                                 src={miembro.usuario_id.imagen}
                                 alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
                               />
-                              <AvatarFallback>
+                              <AvatarFallback className="text-xs">
                                 {miembro.usuario_id.firstname[0]}
                                 {miembro.usuario_id.lastname[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1">
-                              <p className="font-medium">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-xs sm:text-sm truncate">
                                 {miembro.usuario_id.firstname}{" "}
                                 {miembro.usuario_id.lastname}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {miembro.usuario_id.email}
                               </p>
                             </div>
-                            <Badge className="bg-green-500">Confirmado</Badge>
+                            <Badge className="bg-green-500 text-xs flex-shrink-0">Confirmado</Badge>
                           </div>
                         ))}
                       </div>
@@ -462,36 +462,36 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
 
                   {/* Miembros pendientes */}
                   {miembrosPendientes.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">
+                    <div className="min-w-0">
+                      <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">
                         Pendientes de aprobación
                       </h4>
-                      <div className="grid gap-3">
+                      <div className="grid gap-2 sm:gap-3 min-w-0">
                         {miembrosPendientes.map((miembro) => (
                           <div
                             key={miembro._id}
-                            className="flex items-center gap-3 p-3 rounded-lg border border-orange-200 bg-orange-50"
+                            className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border border-orange-200 bg-orange-50 min-w-0"
                           >
-                            <Avatar>
+                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                               <AvatarImage
                                 src={miembro.usuario_id.imagen}
                                 alt={`${miembro.usuario_id.firstname} ${miembro.usuario_id.lastname}`}
                               />
-                              <AvatarFallback>
+                              <AvatarFallback className="text-xs">
                                 {miembro.usuario_id.firstname[0]}
                                 {miembro.usuario_id.lastname[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1">
-                              <p className="font-medium">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-xs sm:text-sm truncate">
                                 {miembro.usuario_id.firstname}{" "}
                                 {miembro.usuario_id.lastname}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {miembro.usuario_id.email}
                               </p>
                             </div>
-                            <Badge variant="outline">Pendiente</Badge>
+                            <Badge variant="outline" className="text-xs flex-shrink-0">Pendiente</Badge>
                           </div>
                         ))}
                       </div>
@@ -500,9 +500,9 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
                 </div>
               )}
 
-              <div className="mt-4">
+              <div className="mt-3 sm:mt-4">
                 <Link href={`/outings/${salida._id}/miembros`}>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full h-8 sm:h-9 text-xs sm:text-sm">
                     Gestionar Participantes
                   </Button>
                 </Link>
@@ -512,32 +512,32 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4 lg:space-y-6 min-w-0">
           {/* Organizador */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+          <Card className="min-w-0">
+            <CardHeader className="p-2.5 sm:p-3 lg:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
                 Organizador
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+            <CardContent className="p-2.5 sm:p-3 lg:p-6 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 flex-shrink-0">
                   <AvatarImage
                     src={salida.creador_id.imagen}
                     alt={`${salida.creador_id.firstname} ${salida.creador_id.lastname}`}
                   />
-                  <AvatarFallback>
+                  <AvatarFallback className="text-xs">
                     {salida.creador_id.firstname[0]}
                     {salida.creador_id.lastname[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-medium">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-xs sm:text-sm truncate">
                     {salida.creador_id.firstname} {salida.creador_id.lastname}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     {salida.creador_id.email}
                   </p>
                 </div>
@@ -547,17 +547,17 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
 
           {/* Sponsor */}
           {salida.sponsor_id && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
+            <Card className="min-w-0">
+              <CardHeader className="p-2.5 sm:p-3 lg:p-6">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
                   Sponsor
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
+              <CardContent className="p-2.5 sm:p-3 lg:p-6 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   {salida.sponsor_id.imagen && (
-                    <div className="relative w-12 h-12">
+                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 flex-shrink-0">
                       <Image
                         src={salida.sponsor_id.imagen}
                         alt={salida.sponsor_id.name}
@@ -566,21 +566,21 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
                       />
                     </div>
                   )}
-                  <p className="font-medium">{salida.sponsor_id.name}</p>
+                  <p className="font-medium text-xs sm:text-sm truncate">{salida.sponsor_id.name}</p>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Cupo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+          <Card className="min-w-0">
+            <CardHeader className="p-2.5 sm:p-3 lg:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                 Disponibilidad
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2.5 sm:p-3 lg:p-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Confirmados</span>

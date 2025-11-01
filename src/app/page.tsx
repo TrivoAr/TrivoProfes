@@ -1,19 +1,15 @@
-'use client';
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
-export default function Home() {
-  const router = useRouter();
+export default async function Home() {
+  const session = await getServerSession(authOptions);
 
-  useEffect(() => {
-    router.replace('/dashboard');
-  }, [router]);
-  
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      <p className="mt-4 text-muted-foreground">Loading Admin Panel...</p>
-    </div>
-  );
+  // Si no hay sesión, redirigir a login
+  if (!session) {
+    redirect('/login');
+  }
+
+  // Si hay sesión, redirigir al dashboard
+  redirect('/dashboard');
 }

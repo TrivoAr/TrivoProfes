@@ -25,111 +25,128 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import type { Stats, Member } from "@/lib/types";
+import { unstable_cache } from 'next/cache';
+
+// Configurar revalidación de página
+export const revalidate = 300; // Revalidar cada 5 minutos
+
+// Cachear las estadísticas
+const getCachedStats = unstable_cache(
+  async (): Promise<Stats> => {
+    try {
+      const { connectDB } = await import("@/lib/mongodb");
+      const SalidaSocial = (await import("@/models/SalidaSocial")).default;
+      const TeamSocial = (await import("@/models/TeamSocial")).default;
+      const Academia = (await import("@/models/Academia")).default;
+      const User = (await import("@/models/User")).default;
+      const Pago = (await import("@/models/Pago")).default;
+
+      await connectDB();
+
+      const [
+        totalSalidas,
+        totalTeams,
+        totalAcademias,
+        totalMiembros,
+        ingresosAprobados,
+      ] = await Promise.all([
+        SalidaSocial.countDocuments(),
+        TeamSocial.countDocuments(),
+        Academia.countDocuments(),
+        User.countDocuments(),
+        Pago.aggregate([
+          { $match: { estado: "aprobado" } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+      ]);
+
+      return {
+        totalSalidas,
+        totalTeams,
+        totalAcademias,
+        totalMiembros,
+        ingresosAprobados: ingresosAprobados[0]?.total || 0,
+      };
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      return {
+        totalSalidas: 0,
+        totalTeams: 0,
+        totalAcademias: 0,
+        totalMiembros: 0,
+        ingresosAprobados: 0,
+      };
+    }
+  },
+  ['dashboard-stats'],
+  {
+    revalidate: 300, // Cachear por 5 minutos
+    tags: ['stats']
+  }
+);
 
 async function getStats(): Promise<Stats> {
-  try {
-    // En lugar de fetch, obtenemos los datos directamente desde la base de datos
-    const { connectDB } = await import("@/lib/mongodb");
-    const SalidaSocial = (await import("@/models/SalidaSocial")).default;
-    const TeamSocial = (await import("@/models/TeamSocial")).default;
-    const Academia = (await import("@/models/Academia")).default;
-    const User = (await import("@/models/User")).default;
-    const Pago = (await import("@/models/Pago")).default;
-
-    await connectDB();
-
-    // Obtener todas las estadísticas para el admin
-    const [
-      totalSalidas,
-      totalTeams,
-      totalAcademias,
-      totalMiembros,
-      ingresosAprobados,
-    ] = await Promise.all([
-      SalidaSocial.countDocuments(),
-      TeamSocial.countDocuments(),
-      Academia.countDocuments(),
-      User.countDocuments(),
-      Pago.aggregate([
-        { $match: { estado: "aprobado" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-    ]);
-
-    return {
-      totalSalidas,
-      totalTeams,
-      totalAcademias,
-      totalMiembros,
-      ingresosAprobados: ingresosAprobados[0]?.total || 0,
-    };
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    return {
-      totalSalidas: 0,
-      totalTeams: 0,
-      totalAcademias: 0,
-      totalMiembros: 0,
-      ingresosAprobados: 0,
-    };
-  }
+  return getCachedStats();
 }
 
-async function getRevenueData(): Promise<{ month: string; revenue: number }[]> {
-  try {
-    const { connectDB } = await import("@/lib/mongodb");
-    const Pago = (await import("@/models/Pago")).default;
+// Cachear datos de revenue
+const getCachedRevenueData = unstable_cache(
+  async (): Promise<{ month: string; revenue: number }[]> => {
+    try {
+      const { connectDB } = await import("@/lib/mongodb");
+      const Pago = (await import("@/models/Pago")).default;
 
-    await connectDB();
+      await connectDB();
 
-    // Obtener los últimos 7 meses de datos de revenue
-    const revenueByMonth = await Pago.aggregate([
-      {
-        $match: { estado: "aprobado" }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" }
-          },
-          total: { $sum: "$amount" }
-        }
-      },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 }
-      },
-      {
-        $limit: 7
+      const revenueByMonth = await Pago.aggregate([
+        { $match: { estado: "aprobado" } },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" }
+            },
+            total: { $sum: "$amount" }
+          }
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+        { $limit: 7 }
+      ]);
+
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+      const formattedData = revenueByMonth.map(item => ({
+        month: monthNames[item._id.month - 1],
+        revenue: item.total || 0
+      }));
+
+      if (formattedData.length === 0) {
+        return [
+          { month: 'Ene', revenue: 0 },
+          { month: 'Feb', revenue: 0 },
+          { month: 'Mar', revenue: 0 },
+          { month: 'Abr', revenue: 0 },
+          { month: 'May', revenue: 0 },
+          { month: 'Jun', revenue: 0 },
+          { month: 'Jul', revenue: 0 },
+        ];
       }
-    ]);
 
-    // Mapear los nombres de los meses en español
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-    const formattedData = revenueByMonth.map(item => ({
-      month: monthNames[item._id.month - 1],
-      revenue: item.total || 0
-    }));
-
-    // Si no hay datos, devolver array vacío o datos de ejemplo
-    if (formattedData.length === 0) {
-      return [
-        { month: 'Ene', revenue: 0 },
-        { month: 'Feb', revenue: 0 },
-        { month: 'Mar', revenue: 0 },
-        { month: 'Abr', revenue: 0 },
-        { month: 'May', revenue: 0 },
-        { month: 'Jun', revenue: 0 },
-        { month: 'Jul', revenue: 0 },
-      ];
+      return formattedData;
+    } catch (error) {
+      console.error("Error fetching revenue data:", error);
+      return [];
     }
-
-    return formattedData;
-  } catch (error) {
-    console.error("Error fetching revenue data:", error);
-    return [];
+  },
+  ['dashboard-revenue'],
+  {
+    revalidate: 300,
+    tags: ['revenue']
   }
+);
+
+async function getRevenueData(): Promise<{ month: string; revenue: number }[]> {
+  return getCachedRevenueData();
 }
 
 // Obtener salidas del profesor
@@ -234,12 +251,12 @@ export default async function DashboardPage() {
 
         <div className="mt-6 grid gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Mis Salidas Sociales</CardTitle>
                 <CardDescription>Accesos rápidos a tus salidas</CardDescription>
               </div>
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto">
                 <Link href="/outings/new">
                   <PartyPopper className="mr-2 h-4 w-4" />
                   Nueva Salida
@@ -255,40 +272,73 @@ export default async function DashboardPage() {
                   </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Cupo</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Vista Desktop - Tabla */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Cupo</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {salidas.map((salida) => (
+                          <TableRow key={salida._id}>
+                            <TableCell className="font-medium">{salida.nombre}</TableCell>
+                            <TableCell>{salida.fecha}</TableCell>
+                            <TableCell>{salida.cupo} personas</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <ShareButton salidaId={salida._id} size="sm" showText={false} />
+                                <Button asChild variant="outline" size="sm">
+                                  <Link href={`/outings/${salida._id}`}>
+                                    Ver
+                                  </Link>
+                                </Button>
+                                <Button asChild variant="outline" size="sm">
+                                  <Link href={`/outings/${salida._id}/edit`}>
+                                    <Edit className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Vista Móvil - Cards */}
+                  <div className="sm:hidden space-y-3">
                     {salidas.map((salida) => (
-                      <TableRow key={salida._id}>
-                        <TableCell className="font-medium">{salida.nombre}</TableCell>
-                        <TableCell>{salida.fecha}</TableCell>
-                        <TableCell>{salida.cupo} personas</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <ShareButton salidaId={salida._id} size="sm" showText={false} />
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/outings/${salida._id}`}>
-                                Ver
-                              </Link>
-                            </Button>
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/outings/${salida._id}/edit`}>
-                                <Edit className="h-4 w-4" />
-                              </Link>
-                            </Button>
+                      <div key={salida._id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-base">{salida.nombre}</h3>
+                            <p className="text-sm text-muted-foreground">{salida.fecha}</p>
+                            <p className="text-sm text-muted-foreground">{salida.cupo} personas</p>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        <div className="flex gap-2">
+                          <ShareButton salidaId={salida._id} size="sm" showText={false} />
+                          <Button asChild variant="outline" size="sm" className="flex-1">
+                            <Link href={`/outings/${salida._id}`}>
+                              Ver
+                            </Link>
+                          </Button>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/outings/${salida._id}/edit`}>
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

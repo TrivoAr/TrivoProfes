@@ -159,16 +159,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+        <header className="sticky top-0 z-10 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-background/80 px-3 sm:px-4 backdrop-blur-sm">
            <SidebarTrigger className="md:hidden" />
-           <div className="flex w-full items-center justify-between">
-            <h2 className="text-xl font-semibold">{getPageTitle()}</h2>
-            <div className="flex items-center gap-2 ml-auto">
+           <div className="flex w-full items-center justify-between min-w-0">
+            <h2 className="text-base sm:text-lg lg:text-xl font-semibold truncate">{getPageTitle()}</h2>
+            <div className="flex items-center gap-2 ml-auto flex-shrink-0">
               <NotificationCenter />
             </div>
            </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
           {children}
         </main>
       </SidebarInset>

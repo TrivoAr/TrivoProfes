@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import MiembroSalida from "@/models/MiembroSalida";
 import { ImageService } from "@/services/ImageService";
-import { getProfileImage } from "@/app/api/profile/getProfileImage";
 
 interface RouteParams {
   params: Promise<{
@@ -17,87 +16,49 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     // Obtener todos los miembros con sus datos poblados
     const miembros = await MiembroSalida.find({ salida_id: id })
-      .populate("usuario_id", "firstname lastname email")
+      .populate("usuario_id", "firstname lastname email imagen")
       .populate("pago_id")
       .sort({ createdAt: -1 })
       .lean();
 
-    // Timeout: 1.5s en producción, 3s en desarrollo
-    const timeoutDuration =
-      process.env.NODE_ENV === "production" ? 1500 : 3000;
+    // Procesar miembros y generar URLs de fallback
+    const miembrosProcessed = miembros.map((miembro: any) => {
+      const usuario = miembro.usuario_id;
 
-    // Procesar imágenes de perfil desde Firebase con Promise.allSettled
-    const miembrosResults = await Promise.allSettled(
-      miembros.map(async (miembro: any) => {
-        try {
-          const usuario = miembro.usuario_id;
+      // Caso 1: Usuario eliminado
+      if (!usuario) {
+        return {
+          ...miembro,
+          usuario_id: {
+            _id: null,
+            firstname: "Usuario eliminado",
+            lastname: "",
+            email: "",
+            imagen: ImageService.generateAvatarUrl("U"),
+          },
+        };
+      }
 
-          // Caso 1: Usuario eliminado
-          if (!usuario) {
-            return {
-              ...miembro,
-              usuario_id: {
-                _id: null,
-                firstname: "Usuario eliminado",
-                lastname: "",
-                email: "",
-                imagen: ImageService.generateAvatarUrl("U"),
-              },
-            };
-          }
+      // Caso 2: Usuario existe - usar imagen de BD o generar fallback
+      // La imagen será manejada por el cliente si viene de Firebase
+      const imagenFallback = ImageService.generateAvatarUrl(
+        usuario.firstname || "U"
+      );
 
-          // Caso 2: Obtener imagen desde Firebase con timeout
-          let imagenUrl;
-          try {
-            const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Image fetch timeout")),
-                timeoutDuration
-              )
-            );
+      return {
+        ...miembro,
+        usuario_id: {
+          ...usuario,
+          // Si el usuario tiene imagen en BD, usarla; sino usar fallback
+          imagen: usuario.imagen || imagenFallback,
+          // Agregar campos adicionales para que el cliente pueda obtener imagen de Firebase
+          _id: usuario._id,
+          hasFirebaseImage: !usuario.imagen, // Indica si debe intentar cargar de Firebase
+        },
+      };
+    });
 
-            // Race entre fetch de imagen y timeout
-            imagenUrl = await Promise.race([
-              getProfileImage("profile-image.jpg", usuario._id.toString()),
-              timeoutPromise,
-            ]);
-          } catch (imageError) {
-            // Fallback a ui-avatars.com
-            imagenUrl = ImageService.generateAvatarUrl(
-              usuario.firstname || "U"
-            );
-          }
-
-          return {
-            ...miembro,
-            usuario_id: {
-              ...usuario,
-              imagen: imagenUrl,
-            },
-          };
-        } catch (e) {
-          // Error interno - avatar rojo
-          return {
-            ...miembro,
-            usuario_id: {
-              _id: miembro.usuario_id?._id || null,
-              firstname: "Error interno",
-              lastname: "",
-              email: "",
-              imagen:
-                "https://ui-avatars.com/api/?name=E&background=ff0000&color=fff&size=128",
-            },
-          };
-        }
-      })
-    );
-
-    // Extraer solo los resultados exitosos
-    const miembrosConImagenes = miembrosResults
-      .filter((result) => result.status === "fulfilled")
-      .map((result: any) => result.value);
-
-    return NextResponse.json(miembrosConImagenes, { status: 200 });
+    return NextResponse.json(miembrosProcessed, { status: 200 });
   } catch (error) {
     console.error("Error fetching members with images:", error);
     return NextResponse.json(

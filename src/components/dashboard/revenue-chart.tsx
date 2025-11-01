@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -7,7 +8,7 @@ type RevenueChartProps = {
   data: { month: string; revenue: number }[];
 };
 
-export function RevenueChart({ data }: RevenueChartProps) {
+export const RevenueChart = memo(function RevenueChart({ data }: RevenueChartProps) {
   return (
     <Card className="col-span-1 lg:col-span-2 xl:col-span-3">
         <CardHeader>
@@ -45,4 +46,4 @@ export function RevenueChart({ data }: RevenueChartProps) {
         </CardContent>
     </Card>
   );
-}
+});

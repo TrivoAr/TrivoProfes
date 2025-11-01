@@ -16,14 +16,16 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "10"); // Reducir de 20 a 10
 
     const query: any = { userId: session.user.id };
     if (unreadOnly) {
       query.read = false;
     }
 
+    // Seleccionar solo los campos necesarios
     const notificaciones = await Notificacion.find(query)
+      .select('_id type message actionUrl actionType read createdAt')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
@@ -39,7 +41,12 @@ export async function GET(req: NextRequest) {
         notificaciones: JSON.parse(JSON.stringify(notificaciones)),
         unreadCount,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, max-age=30', // Cachear por 30 segundos
+        }
+      }
     );
   } catch (error: any) {
     console.error("Error al obtener notificaciones:", error);
