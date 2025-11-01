@@ -27,28 +27,21 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       .populate("usuario_id", "firstname lastname email imagen")
       .populate("pago_id")
       .sort({ createdAt: -1 })
-      .lean();
+      .lean()
+      .exec();
+
+    // Serializar primero para evitar problemas con ObjectIds
+    const miembrosPlain = JSON.parse(JSON.stringify(miembros));
 
     // Procesar miembros y generar URLs de fallback
-    const miembrosProcessed = miembros.map((miembro: any) => {
+    const miembrosProcessed = miembrosPlain.map((miembro: any) => {
       try {
         const usuario = miembro.usuario_id;
 
         // Caso 1: Usuario eliminado
         if (!usuario || !usuario._id) {
           return {
-            _id: miembro._id?.toString() || null,
-            salida_id: miembro.salida_id?.toString() || null,
-            fecha_union: miembro.fecha_union,
-            rol: miembro.rol,
-            estado: miembro.estado,
-            pago_id: miembro.pago_id ? {
-              _id: miembro.pago_id._id?.toString(),
-              amount: miembro.pago_id.amount,
-              estado: miembro.pago_id.estado,
-            } : null,
-            createdAt: miembro.createdAt,
-            updatedAt: miembro.updatedAt,
+            ...miembro,
             usuario_id: {
               _id: null,
               firstname: "Usuario eliminado",
@@ -65,20 +58,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         );
 
         return {
-          _id: miembro._id?.toString() || null,
-          salida_id: miembro.salida_id?.toString() || null,
-          fecha_union: miembro.fecha_union,
-          rol: miembro.rol,
-          estado: miembro.estado,
-          pago_id: miembro.pago_id ? {
-            _id: miembro.pago_id._id?.toString(),
-            amount: miembro.pago_id.amount,
-            estado: miembro.pago_id.estado,
-          } : null,
-          createdAt: miembro.createdAt,
-          updatedAt: miembro.updatedAt,
+          ...miembro,
           usuario_id: {
-            _id: usuario._id.toString(),
+            _id: usuario._id,
             firstname: usuario.firstname || "",
             lastname: usuario.lastname || "",
             email: usuario.email || "",
@@ -90,14 +72,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         console.error("Error processing member:", miembro._id, processingError);
         // Return a safe default if processing fails
         return {
-          _id: miembro._id?.toString() || null,
-          salida_id: miembro.salida_id?.toString() || null,
-          fecha_union: miembro.fecha_union,
-          rol: miembro.rol || "miembro",
-          estado: miembro.estado || "pendiente",
-          pago_id: null,
-          createdAt: miembro.createdAt,
-          updatedAt: miembro.updatedAt,
+          ...miembro,
           usuario_id: {
             _id: null,
             firstname: "Error",
@@ -109,10 +84,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       }
     });
 
-    // Serializar correctamente para producción (Vercel)
-    const serializedData = JSON.parse(JSON.stringify(miembrosProcessed));
-
-    return NextResponse.json(serializedData, {
+    return NextResponse.json(miembrosProcessed, {
       status: 200,
       headers: {
         'Cache-Control': 'private, max-age=60', // Cache for 1 minute
