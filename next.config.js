@@ -1,7 +1,7 @@
-import type {NextConfig} from 'next';
-import crypto from 'crypto';
+const crypto = require('crypto');
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   /* config options here */
   // Custom build ID generator to avoid nanoid issues
   generateBuildId: async () => {
@@ -83,4 +83,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
