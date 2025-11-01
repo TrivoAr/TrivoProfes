@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { connectDB } from "@/lib/mongodb";
 import TeamSocial from "@/models/TeamSocial";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -12,7 +12,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     await connectDB();
-    const team = await TeamSocial.findById(params.id).populate("creadorId", "firstname lastname email");
+    const { id } = await params;
+    const team = await TeamSocial.findById(id).populate("creadorId", "firstname lastname email");
 
     if (!team) {
       return NextResponse.json({ error: "Team no encontrado" }, { status: 404 });
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -37,10 +38,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     await connectDB();
+    const { id } = await params;
     const body = await req.json();
     const { creadorId, ...updateData } = body;
 
-    const teamActualizado = await TeamSocial.findByIdAndUpdate(params.id, updateData, { new: true, runValidators: true })
+    const teamActualizado = await TeamSocial.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate("creadorId", "firstname lastname email");
 
     if (!teamActualizado) {
@@ -54,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -66,7 +68,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await connectDB();
-    const team = await TeamSocial.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const team = await TeamSocial.findByIdAndDelete(id);
 
     if (!team) {
       return NextResponse.json({ error: "Team no encontrado" }, { status: 404 });

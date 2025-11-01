@@ -9,7 +9,7 @@ import SalidaSocial from "@/models/SalidaSocial";
 // PATCH /api/salidas/[id]/miembros/[miembroId] - Aprobar/Rechazar miembro
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; miembroId: string } }
+  { params }: { params: Promise<{ id: string; miembroId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,6 +24,7 @@ export async function PATCH(
 
     await connectDB();
 
+    const { id, miembroId } = await params;
     const body = await req.json();
     const { estado } = body; // "aprobado" o "rechazado"
 
@@ -36,7 +37,7 @@ export async function PATCH(
 
     // Si se va a aprobar, verificar que hay cupo disponible
     if (estado === "aprobado") {
-      const salida = await SalidaSocial.findById(params.id);
+      const salida = await SalidaSocial.findById(id);
       if (!salida) {
         return NextResponse.json(
           { error: "Salida no encontrada" },
@@ -45,7 +46,7 @@ export async function PATCH(
       }
 
       const miembrosAprobados = await MiembroSalida.countDocuments({
-        salida_id: params.id,
+        salida_id: id,
         estado: "aprobado",
       });
 
@@ -57,7 +58,7 @@ export async function PATCH(
       }
     }
 
-    const miembro = await MiembroSalida.findById(params.miembroId);
+    const miembro = await MiembroSalida.findById(miembroId);
 
     if (!miembro) {
       return NextResponse.json(
@@ -91,7 +92,7 @@ export async function PATCH(
 // DELETE /api/salidas/[id]/miembros/[miembroId] - Eliminar miembro
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; miembroId: string } }
+  { params }: { params: Promise<{ id: string; miembroId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -106,7 +107,8 @@ export async function DELETE(
 
     await connectDB();
 
-    const miembro = await MiembroSalida.findByIdAndDelete(params.miembroId);
+    const { miembroId } = await params;
+    const miembro = await MiembroSalida.findByIdAndDelete(miembroId);
 
     if (!miembro) {
       return NextResponse.json(

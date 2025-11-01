@@ -8,7 +8,7 @@ import Pago from "@/models/Pago";
 // GET /api/salidas/[id]/miembros - Listar miembros de una salida
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +19,8 @@ export async function GET(
 
     await connectDB();
 
-    const miembros = await MiembroSalida.find({ salida_id: params.id })
+    const { id } = await params;
+    const miembros = await MiembroSalida.find({ salida_id: id })
       .populate("usuario_id", "firstname lastname email imagen")
       .populate("pago_id")
       .sort({ createdAt: -1 })
