@@ -37,7 +37,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         // Caso 1: Usuario eliminado
         if (!usuario || !usuario._id) {
           return {
-            ...miembro,
+            _id: miembro._id?.toString() || null,
+            salida_id: miembro.salida_id?.toString() || null,
+            fecha_union: miembro.fecha_union,
+            rol: miembro.rol,
+            estado: miembro.estado,
+            pago_id: miembro.pago_id ? {
+              _id: miembro.pago_id._id?.toString(),
+              amount: miembro.pago_id.amount,
+              estado: miembro.pago_id.estado,
+            } : null,
+            createdAt: miembro.createdAt,
+            updatedAt: miembro.updatedAt,
             usuario_id: {
               _id: null,
               firstname: "Usuario eliminado",
@@ -54,7 +65,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         );
 
         return {
-          ...miembro,
+          _id: miembro._id?.toString() || null,
+          salida_id: miembro.salida_id?.toString() || null,
+          fecha_union: miembro.fecha_union,
+          rol: miembro.rol,
+          estado: miembro.estado,
+          pago_id: miembro.pago_id ? {
+            _id: miembro.pago_id._id?.toString(),
+            amount: miembro.pago_id.amount,
+            estado: miembro.pago_id.estado,
+          } : null,
+          createdAt: miembro.createdAt,
+          updatedAt: miembro.updatedAt,
           usuario_id: {
             _id: usuario._id.toString(),
             firstname: usuario.firstname || "",
@@ -68,7 +90,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         console.error("Error processing member:", miembro._id, processingError);
         // Return a safe default if processing fails
         return {
-          ...miembro,
+          _id: miembro._id?.toString() || null,
+          salida_id: miembro.salida_id?.toString() || null,
+          fecha_union: miembro.fecha_union,
+          rol: miembro.rol || "miembro",
+          estado: miembro.estado || "pendiente",
+          pago_id: null,
+          createdAt: miembro.createdAt,
+          updatedAt: miembro.updatedAt,
           usuario_id: {
             _id: null,
             firstname: "Error",
