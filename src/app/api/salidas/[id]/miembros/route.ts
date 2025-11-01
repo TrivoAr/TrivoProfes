@@ -22,9 +22,13 @@ export async function GET(
     const miembros = await MiembroSalida.find({ salida_id: params.id })
       .populate("usuario_id", "firstname lastname email imagen")
       .populate("pago_id")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return NextResponse.json(miembros, { status: 200 });
+    // Serializar correctamente para producción (Vercel)
+    const serializedMiembros = JSON.parse(JSON.stringify(miembros));
+
+    return NextResponse.json(serializedMiembros, { status: 200 });
   } catch (error) {
     console.error("Error obteniendo miembros:", error);
     return NextResponse.json(

@@ -109,7 +109,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       }
     });
 
-    return NextResponse.json(miembrosProcessed, {
+    // Serializar correctamente para producción (Vercel)
+    const serializedData = JSON.parse(JSON.stringify(miembrosProcessed));
+
+    return NextResponse.json(serializedData, {
       status: 200,
       headers: {
         'Cache-Control': 'private, max-age=60', // Cache for 1 minute

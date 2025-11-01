@@ -22,7 +22,8 @@ export async function GET(
 
     const { id } = await params;
     const salida = await SalidaSocial.findById(id)
-      .populate("creador_id", "firstname lastname email");
+      .populate("creador_id", "firstname lastname email")
+      .lean();
 
     if (!salida) {
       return NextResponse.json(
@@ -31,7 +32,10 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(salida, { status: 200 });
+    // Serializar correctamente para producción (Vercel)
+    const serializedSalida = JSON.parse(JSON.stringify(salida));
+
+    return NextResponse.json(serializedSalida, { status: 200 });
   } catch (error) {
     console.error("Error obteniendo salida:", error);
     return NextResponse.json(
@@ -69,7 +73,8 @@ export async function PUT(
       id,
       updateData,
       { new: true, runValidators: true }
-    ).populate("creador_id", "firstname lastname email");
+    ).populate("creador_id", "firstname lastname email")
+    .lean();
 
     if (!salidaActualizada) {
       return NextResponse.json(
@@ -78,7 +83,10 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(salidaActualizada, { status: 200 });
+    // Serializar correctamente para producción (Vercel)
+    const serializedSalida = JSON.parse(JSON.stringify(salidaActualizada));
+
+    return NextResponse.json(serializedSalida, { status: 200 });
   } catch (error) {
     console.error("Error actualizando salida:", error);
     return NextResponse.json(
@@ -123,7 +131,8 @@ export async function PATCH(
       id,
       { imagen },
       { new: true, runValidators: true }
-    ).populate("creador_id", "firstname lastname email");
+    ).populate("creador_id", "firstname lastname email")
+    .lean();
 
     if (!salidaActualizada) {
       return NextResponse.json(
@@ -132,7 +141,10 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(salidaActualizada, { status: 200 });
+    // Serializar correctamente para producción (Vercel)
+    const serializedSalida = JSON.parse(JSON.stringify(salidaActualizada));
+
+    return NextResponse.json(serializedSalida, { status: 200 });
   } catch (error) {
     console.error("Error actualizando imagen:", error);
     return NextResponse.json(
