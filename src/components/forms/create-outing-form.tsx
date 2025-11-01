@@ -22,15 +22,35 @@ import Image from "next/image";
 import { DIFICULTAD_OPTIONS } from "@/lib/constants/salidas";
 
 // Lazy load componentes pesados (mapas y geolocalización)
-const LocationPicker = dynamic(() => import("@/components/map/location-picker").then(mod => ({ default: mod.LocationPicker })), {
-  loading: () => <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/50"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>,
-  ssr: false
-});
+const LocationPicker = dynamic(
+  () =>
+    import("@/components/map/location-picker").then((mod) => ({
+      default: mod.LocationPicker,
+    })),
+  {
+    loading: () => (
+      <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/50">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
-const AddressAutocomplete = dynamic(() => import("@/components/map/address-autocomplete").then(mod => ({ default: mod.AddressAutocomplete })), {
-  loading: () => <div className="h-10 flex items-center justify-center border rounded-md"><Loader2 className="h-4 w-4 animate-spin" /></div>,
-  ssr: false
-});
+const AddressAutocomplete = dynamic(
+  () =>
+    import("@/components/map/address-autocomplete").then((mod) => ({
+      default: mod.AddressAutocomplete,
+    })),
+  {
+    loading: () => (
+      <div className="h-10 flex items-center justify-center border rounded-md">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 interface CreateOutingFormProps {
   onSuccess?: () => void;
