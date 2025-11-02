@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import MiembroSalida from "@/models/MiembroSalida";
+import Pago from "@/models/Pago";
 import { ImageService } from "@/services/ImageService";
 
 interface RouteParams {
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     await connectDB();
+
+    // Asegurar que el modelo Pago está registrado
+    console.log("Pago model registered:", Pago.modelName);
 
     // Obtener todos los miembros con sus datos poblados
     const miembros = await MiembroSalida.find({ salida_id: id })

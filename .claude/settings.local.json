@@ -18,7 +18,18 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash pop:*)",
+      "Bash(timeout 120 tail:*)",
+      "Bash(git stash:*)",
+      "Bash(rm:*)",
+      "Bash(git rm:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
