@@ -42,13 +42,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 });
     }
 
-    // Si hay una salida asociada, actualizar también el miembro
+    // Si hay una salida asociada, crear notificación para el usuario
     if (pago.salidaId) {
-      await MiembroSalida.updateMany(
-        { pago_id: pago._id },
-        { estado }
-      );
-
       // Crear notificación para el usuario
       const notificationType =
         estado === "aprobado" ? "pago_aprobado" : "pago_rechazado";

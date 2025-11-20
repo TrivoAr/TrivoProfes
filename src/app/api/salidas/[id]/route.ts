@@ -96,7 +96,7 @@ export async function PUT(
   }
 }
 
-// PATCH /api/salidas/[id] - Actualizar imagen de una salida
+// PATCH /api/salidas/[id] - Actualizar imagen(es) de una salida
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -117,22 +117,41 @@ export async function PATCH(
     const body = await req.json();
     const { id } = await params;
 
-    // Solo permitir actualizar la imagen
-    const { imagen } = body;
+    // Permitir actualizar imagen (legacy) o imagenes (nuevo)
+    const { imagen, imagenes } = body;
 
-    if (!imagen) {
+    if (!imagen && !imagenes) {
       return NextResponse.json(
-        { error: "URL de imagen requerida" },
+        { error: "URL de imagen o imagenes requerida" },
         { status: 400 }
       );
     }
 
+    // Preparar el objeto de actualización
+    const updateData: any = {};
+    if (imagenes) {
+      updateData.imagenes = imagenes;
+      console.log("📸 PATCH - Actualizando imagenes:", imagenes);
+    }
+    if (imagen) {
+      updateData.imagen = imagen;
+      console.log("📸 PATCH - Actualizando imagen:", imagen);
+    }
+
+    console.log("🔄 PATCH - Datos a actualizar:", updateData);
+
     const salidaActualizada = await SalidaSocial.findByIdAndUpdate(
       id,
-      { imagen },
+      updateData,
       { new: true, runValidators: true }
     ).populate("creador_id", "firstname lastname email")
     .lean();
+
+    console.log("✅ PATCH - Salida actualizada:", {
+      _id: salidaActualizada?._id,
+      imagenes: salidaActualizada?.imagenes,
+      imagen: salidaActualizada?.imagen
+    });
 
     if (!salidaActualizada) {
       return NextResponse.json(

@@ -11,7 +11,8 @@ export type SocialOuting = {
   localidad?: string;
   provincia?: string;
   telefonoOrganizador?: string;
-  imagen?: string;
+  imagen?: string; // Deprecated: usar imagenes[]
+  imagenes?: string[];
   locationCoords?: {
     lat?: number;
     lng?: number;
@@ -82,7 +83,6 @@ export type Member = {
   salida_id?: any; // Populated SalidaSocial object
   fecha_union: Date;
   rol: "miembro" | "organizador";
-  estado: "pendiente" | "aprobado" | "rechazado";
   pago_id?: any; // Populated Pago object
   createdAt: Date;
   updatedAt: Date;
@@ -126,6 +126,11 @@ export type Stats = {
   totalAcademias: number;
   totalMiembros: number;
   ingresosAprobados: number;
+  ingresosMercadoPago: number;
+  ingresosTransferencia: number;
+  // Club del Trekking
+  miembrosClubActivos: number;
+  ingresosClubTrekking: number;
 };
 
 export type NavItem = {

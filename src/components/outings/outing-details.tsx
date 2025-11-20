@@ -40,6 +40,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { DIFICULTAD_LABELS } from "@/lib/constants/salidas";
+import { ImageCarousel } from "@/components/outings/image-carousel";
 
 interface Miembro {
   _id: string;
@@ -67,6 +68,7 @@ interface Salida {
   provincia?: string;
   telefonoOrganizador?: string;
   imagen?: string;
+  imagenes?: string[];
   locationCoords?: {
     lat: number;
     lng: number;
@@ -105,6 +107,17 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Debug: Ver qué datos recibe el componente
+  console.log("🔍 OutingDetails - Datos de salida:", {
+    _id: salida._id,
+    nombre: salida.nombre,
+    imagen: salida.imagen,
+    imagenes: salida.imagenes,
+    hasImagen: !!salida.imagen,
+    hasImagenes: !!salida.imagenes,
+    imagenesLength: salida.imagenes?.length
+  });
+
   const miembrosAprobados = miembros.filter((m) => m.estado === "aprobado");
   const miembrosPendientes = miembros.filter((m) => m.estado === "pendiente");
 
@@ -129,8 +142,11 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
       return <Badge variant="secondary">Sin fecha definida</Badge>;
     }
 
-    const fechaSalida = new Date(salida.fecha);
+    // Parsear la fecha como local (YYYY-MM-DD) sin conversión de timezone
+    const [year, month, day] = salida.fecha.split('-').map(Number);
+    const fechaSalida = new Date(year, month - 1, day);
     const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
     if (fechaSalida > hoy) {
       return <Badge className="bg-green-500">Activa</Badge>;
@@ -247,17 +263,20 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
             </CardHeader>
 
             <CardContent className="space-y-2.5 sm:space-y-3 lg:space-y-6 p-2.5 sm:p-3 lg:p-6 min-w-0">
-              {/* Imagen */}
-              {salida.imagen && (
-                <div className="relative w-full h-48 sm:h-64 lg:h-80 rounded-lg overflow-hidden">
-                  <Image
-                    src={salida.imagen}
-                    alt={salida.nombre}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
+              {/* Imágenes */}
+              {(() => {
+                // Determinar qué imágenes mostrar
+                const imagesToShow = salida.imagenes && salida.imagenes.length > 0
+                  ? salida.imagenes
+                  : salida.imagen
+                    ? [salida.imagen]
+                    : [];
+
+                // Mostrar carrousel si hay imágenes
+                return imagesToShow.length > 0 ? (
+                  <ImageCarousel images={imagesToShow} alt={salida.nombre} />
+                ) : null;
+              })()}
 
               {/* Descripción */}
               {salida.descripcion && (
@@ -279,7 +298,12 @@ export function OutingDetails({ salida, miembros }: OutingDetailsProps) {
                     <div>
                       <p className="text-sm font-medium">Fecha</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(salida.fecha), "PPP", { locale: es })}
+                        {(() => {
+                          // Parsear la fecha como local (YYYY-MM-DD) sin conversión de timezone
+                          const [year, month, day] = salida.fecha.split('-').map(Number);
+                          const fechaLocal = new Date(year, month - 1, day);
+                          return format(fechaLocal, "PPP", { locale: es });
+                        })()}
                       </p>
                     </div>
                   </div>

@@ -67,8 +67,8 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
   const { toast } = useToast();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
@@ -219,35 +219,54 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Validar el archivo
-    const validation = ImageService.validateImageFile(file);
-    if (!validation.isValid) {
+    // Validar máximo de 10 imágenes
+    if (imageFiles.length + files.length > 10) {
       toast({
         title: "Error",
-        description: validation.error,
+        description: "Máximo 10 imágenes permitidas",
         variant: "destructive",
       });
       return;
     }
 
-    // Guardar el archivo
-    setImageFile(file);
+    // Validar cada archivo
+    const validFiles: File[] = [];
+    const previews: string[] = [];
 
-    // Crear preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    files.forEach((file) => {
+      const validation = ImageService.validateImageFile(file);
+      if (!validation.isValid) {
+        toast({
+          title: "Error",
+          description: `${file.name}: ${validation.error}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      validFiles.push(file);
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Crear previews para los archivos válidos
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Guardar los archivos
+    setImageFiles((prev) => [...prev, ...validFiles]);
   };
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setFormData((prev) => ({ ...prev, imagen: "" }));
+  const handleRemoveImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,32 +340,32 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
       const result = await response.json();
       const salidaId = result._id;
 
-      // Si hay una imagen, subirla a Firebase
-      let imageUrl = "";
-      if (imageFile && salidaId) {
+      // Si hay imágenes, subirlas a Firebase
+      let imageUrls: string[] = [];
+      if (imageFiles.length > 0 && salidaId) {
         try {
           setIsUploadingImage(true);
           toast({
-            title: "Subiendo imagen...",
-            description: "Por favor espera mientras se sube la imagen",
+            title: "Subiendo imágenes...",
+            description: `Por favor espera mientras se suben ${imageFiles.length} imagen(es)`,
           });
 
-          imageUrl = await ImageService.saveSocialImage(imageFile, salidaId);
+          imageUrls = await ImageService.saveSocialImages(imageFiles, salidaId);
 
-          // Actualizar la salida con la URL de la imagen
+          // Actualizar la salida con las URLs de las imágenes
           await fetch(`/api/salidas/${salidaId}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ imagen: imageUrl }),
+            body: JSON.stringify({ imagenes: imageUrls }),
           });
         } catch (imageError) {
-          console.error("Error uploading image:", imageError);
+          console.error("Error uploading images:", imageError);
           toast({
             title: "Advertencia",
             description:
-              "La salida se creó pero hubo un error al subir la imagen",
+              "La salida se creó pero hubo un error al subir las imágenes",
             variant: "destructive",
           });
         } finally {
@@ -381,8 +400,8 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
         whatsappLink: "",
         sponsor_id: "",
       });
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
 
       if (onSuccess) {
         onSuccess();
@@ -712,58 +731,69 @@ export function CreateOutingForm({ onSuccess }: CreateOutingFormProps) {
         </div>
       </div>
 
-      {/* Imagen */}
+      {/* Imágenes */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Imagen (Opcional)</h3>
+        <h3 className="text-lg font-semibold">Imágenes (Opcional)</h3>
         <div className="space-y-2">
-          <Label htmlFor="imagen">Imagen de la Salida</Label>
+          <Label htmlFor="imagen">Imágenes de la Salida</Label>
 
-          {!imagePreview ? (
-            <div className="flex items-center gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById("imagen")?.click()}
-                disabled={isLoading}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Seleccionar Imagen
-              </Button>
-              <Input
-                id="imagen"
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <p className="text-sm text-muted-foreground">
-                JPG, PNG o WebP (máx. 5MB)
-              </p>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById("imagen")?.click()}
+              disabled={isLoading || imageFiles.length >= 10}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {imageFiles.length > 0 ? "Agregar más imágenes" : "Seleccionar Imágenes"}
+            </Button>
+            <Input
+              id="imagen"
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={handleImageChange}
+              className="hidden"
+              multiple
+            />
+            <p className="text-sm text-muted-foreground">
+              JPG, PNG o WebP (máx. 5MB cada una, hasta 10 imágenes)
+            </p>
+          </div>
+
+          {imagePreviews.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative aspect-video rounded-lg overflow-hidden border">
+                  <Image
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={() => handleRemoveImage(index)}
+                    disabled={isLoading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {index === 0 && (
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      Principal
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="relative w-full max-w-md aspect-video rounded-lg overflow-hidden border">
-                <Image
-                  src={imagePreview}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={handleRemoveImage}
-                  disabled={isLoading}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Imagen lista para subir
-              </p>
-            </div>
+          )}
+
+          {imagePreviews.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {imagePreviews.length} imagen(es) lista(s) para subir. La primera será la imagen principal.
+            </p>
           )}
         </div>
       </div>

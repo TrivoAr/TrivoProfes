@@ -13,7 +13,8 @@ export interface ISalidaSocial {
   localidad?: string;
   provincia?: string;
   telefonoOrganizador?: string;
-  imagen?: string;
+  imagen?: string; // Deprecated: usar imagenes[]
+  imagenes?: string[];
   locationCoords?: {
     lat?: number;
     lng?: number;
@@ -43,7 +44,8 @@ const SalidaSocialSchema = new Schema<ISalidaSocial>(
     localidad: { type: String },
     provincia: { type: String },
     telefonoOrganizador: { type: String },
-    imagen: { type: String },
+    imagen: { type: String }, // Deprecated: usar imagenes[]
+    imagenes: [{ type: String }],
     locationCoords: {
       lat: { type: Number },
       lng: { type: Number },

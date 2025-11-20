@@ -28,7 +28,9 @@ interface OutingTableRowProps {
 const formatFechaHora = (fecha?: string, hora?: string) => {
   if (!fecha) return "Sin fecha";
   try {
-    const fechaObj = new Date(fecha);
+    // Parsear la fecha como local (YYYY-MM-DD) sin conversión de timezone
+    const [year, month, day] = fecha.split('-').map(Number);
+    const fechaObj = new Date(year, month - 1, day);
     const fechaStr = format(fechaObj, "dd/MM/yyyy", { locale: es });
     return hora ? `${fechaStr} - ${hora}` : fechaStr;
   } catch {

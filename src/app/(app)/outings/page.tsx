@@ -26,13 +26,17 @@ async function getSalidas() {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Obtener conteo de miembros aprobados para cada salida
+    // Obtener conteo de pagos aprobados para cada salida
     const salidasConMiembros = await Promise.all(
       salidas.map(async (salida: any) => {
-        const miembrosAprobados = await MiembroSalida.countDocuments({
+        // Obtener miembros con pagos aprobados
+        const miembrosConPagoAprobado = await MiembroSalida.find({
           salida_id: salida._id,
-          estado: "aprobado",
-        });
+        }).populate('pago_id').lean();
+
+        const miembrosAprobados = miembrosConPagoAprobado.filter(
+          (miembro: any) => miembro.pago_id && miembro.pago_id.estado === 'aprobado'
+        ).length;
 
         return {
           _id: salida._id.toString(),
@@ -47,6 +51,7 @@ async function getSalidas() {
           provincia: salida.provincia || undefined,
           telefonoOrganizador: salida.telefonoOrganizador || undefined,
           imagen: salida.imagen || undefined,
+          imagenes: salida.imagenes || undefined,
           locationCoords: salida.locationCoords
             ? {
                 lat: salida.locationCoords.lat,

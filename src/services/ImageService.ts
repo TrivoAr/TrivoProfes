@@ -189,7 +189,7 @@ export class ImageService {
   // Specialized upload methods for different entity types
 
   /**
-   * Save social event image
+   * Save social event image (single - deprecated)
    */
   static async saveSocialImage(file: File, salidaId: string): Promise<string> {
     try {
@@ -202,6 +202,25 @@ export class ImageService {
       console.error("[ImageService] Error saving social image:", error);
       throw new ImageUploadError(
         "Error al guardar la imagen de salida social",
+        error
+      );
+    }
+  }
+
+  /**
+   * Save multiple social event images
+   */
+  static async saveSocialImages(files: File[], salidaId: string): Promise<string[]> {
+    try {
+      const uploadPromises = files.map((file, index) =>
+        this.uploadImage(file, `salidas/${salidaId}`, `imagen_${index + 1}.jpg`)
+      );
+
+      return await Promise.all(uploadPromises);
+    } catch (error) {
+      console.error("[ImageService] Error saving social images:", error);
+      throw new ImageUploadError(
+        "Error al guardar las imágenes de la salida social",
         error
       );
     }

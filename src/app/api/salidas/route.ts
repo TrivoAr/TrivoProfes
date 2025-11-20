@@ -22,13 +22,17 @@ export async function GET() {
       .populate("creador_id", "firstname lastname email")
       .sort({ createdAt: -1 });
 
-    // Obtener conteo de miembros aprobados para cada salida
+    // Obtener conteo de pagos aprobados para cada salida
     const salidasConMiembros = await Promise.all(
       salidas.map(async (salida) => {
-        const miembrosAprobados = await MiembroSalida.countDocuments({
+        // Obtener miembros con pagos aprobados
+        const miembrosConPago = await MiembroSalida.find({
           salida_id: salida._id,
-          estado: "aprobado",
-        });
+        }).populate('pago_id').lean();
+
+        const miembrosAprobados = miembrosConPago.filter(
+          (miembro: any) => miembro.pago_id && miembro.pago_id.estado === 'aprobado'
+        ).length;
 
         return {
           ...salida.toObject(),

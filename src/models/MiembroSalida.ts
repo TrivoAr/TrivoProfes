@@ -6,7 +6,6 @@ export interface IMiembroSalida {
   salida_id: Schema.Types.ObjectId;
   fecha_union: Date;
   rol: "miembro" | "organizador";
-  estado: "pendiente" | "aprobado" | "rechazado";
   pago_id?: Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -29,11 +28,6 @@ const MiembroSalidaSchema = new Schema<IMiembroSalida>(
       type: String,
       enum: ["miembro", "organizador"],
       default: "miembro",
-    },
-    estado: {
-      type: String,
-      enum: ["pendiente", "aprobado", "rechazado"],
-      default: "pendiente",
     },
     pago_id: { type: Schema.Types.ObjectId, ref: "Pago" },
   },

@@ -116,15 +116,21 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
 
   const getEstado = (salida: SocialOuting) => {
     if (!salida.fecha) return "sin-fecha";
-    const fechaSalida = new Date(salida.fecha);
+    // Parsear la fecha como local (YYYY-MM-DD) sin conversión de timezone
+    const [year, month, day] = salida.fecha.split('-').map(Number);
+    const fechaSalida = new Date(year, month - 1, day);
     const hoy = new Date();
-    return fechaSalida > hoy ? "activa" : "finalizada";
+    hoy.setHours(0, 0, 0, 0);
+    // Si la fecha es hoy o futura, está activa
+    return fechaSalida >= hoy ? "activa" : "finalizada";
   };
 
   const formatFechaHora = (fecha?: string, hora?: string) => {
     if (!fecha) return "Sin fecha";
     try {
-      const fechaObj = new Date(fecha);
+      // Parsear la fecha como local (YYYY-MM-DD) sin conversión de timezone
+      const [year, month, day] = fecha.split('-').map(Number);
+      const fechaObj = new Date(year, month - 1, day);
       const fechaStr = format(fechaObj, "dd/MM/yyyy", { locale: es });
       return hora ? `${fechaStr} - ${hora}` : fechaStr;
     } catch {
@@ -149,15 +155,21 @@ export function OutingsTable({ outings }: { outings: SocialOuting[] }) {
     return outings.filter((outing) => {
       // Filtro por fecha desde
       if (filters.fechaDesde && outing.fecha) {
-        const fechaOuting = new Date(outing.fecha);
-        const fechaDesde = new Date(filters.fechaDesde);
+        // Parsear ambas fechas como locales sin conversión de timezone
+        const [yOut, mOut, dOut] = outing.fecha.split('-').map(Number);
+        const fechaOuting = new Date(yOut, mOut - 1, dOut);
+        const [yDes, mDes, dDes] = filters.fechaDesde.split('-').map(Number);
+        const fechaDesde = new Date(yDes, mDes - 1, dDes);
         if (fechaOuting < fechaDesde) return false;
       }
 
       // Filtro por fecha hasta
       if (filters.fechaHasta && outing.fecha) {
-        const fechaOuting = new Date(outing.fecha);
-        const fechaHasta = new Date(filters.fechaHasta);
+        // Parsear ambas fechas como locales sin conversión de timezone
+        const [yOut, mOut, dOut] = outing.fecha.split('-').map(Number);
+        const fechaOuting = new Date(yOut, mOut - 1, dOut);
+        const [yHas, mHas, dHas] = filters.fechaHasta.split('-').map(Number);
+        const fechaHasta = new Date(yHas, mHas - 1, dHas);
         if (fechaOuting > fechaHasta) return false;
       }
 

@@ -23,6 +23,14 @@ async function getSalidaDetails(id: string) {
       return null;
     }
 
+    // Debug: Ver qué datos trae MongoDB
+    console.log("🔍 Server - Datos de MongoDB:", {
+      _id: salida._id,
+      nombre: salida.nombre,
+      imagen: salida.imagen,
+      imagenes: salida.imagenes,
+    });
+
     // Obtener miembros de la salida
     const miembros = await MiembroSalida.find({ salida_id: id })
       .populate("usuario_id", "firstname lastname email imagen")

@@ -45,10 +45,14 @@ export async function PATCH(
         );
       }
 
-      const miembrosAprobados = await MiembroSalida.countDocuments({
+      // Contar miembros con pagos aprobados
+      const miembrosConPago = await MiembroSalida.find({
         salida_id: id,
-        estado: "aprobado",
-      });
+      }).populate('pago_id').lean();
+
+      const miembrosAprobados = miembrosConPago.filter(
+        (miembro: any) => miembro.pago_id && miembro.pago_id.estado === 'aprobado'
+      ).length;
 
       if (miembrosAprobados >= salida.cupo) {
         return NextResponse.json(
@@ -67,14 +71,16 @@ export async function PATCH(
       );
     }
 
-    // Actualizar estado del miembro
-    miembro.estado = estado;
-    await miembro.save();
-
-    // Si hay pago asociado, también actualizarlo
-    if (miembro.pago_id) {
-      await Pago.findByIdAndUpdate(miembro.pago_id, { estado });
+    // Verificar que el miembro tenga un pago asociado
+    if (!miembro.pago_id) {
+      return NextResponse.json(
+        { error: "El miembro no tiene un pago asociado" },
+        { status: 400 }
+      );
     }
+
+    // Actualizar estado del pago (es lo que realmente importa)
+    await Pago.findByIdAndUpdate(miembro.pago_id, { estado });
 
     await miembro.populate("usuario_id", "firstname lastname email imagen");
     await miembro.populate("pago_id");

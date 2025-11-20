@@ -56,6 +56,7 @@ interface SalidaData {
   provincia?: string;
   telefonoOrganizador?: string;
   imagen?: string;
+  imagenes?: string[];
   locationCoords?: {
     lat?: number;
     lng?: number;
@@ -75,12 +76,12 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
-  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
   // Verificar si el usuario es admin
   const isAdmin = session?.user?.rol === "admin";
@@ -163,10 +164,12 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
           sponsor_id: data.sponsor_id || "",
         });
 
-        // Si hay imagen existente, mostrarla
-        if (data.imagen) {
-          setExistingImageUrl(data.imagen);
-          setImagePreview(data.imagen);
+        // Si hay imágenes existentes, cargarlas
+        if (data.imagenes && data.imagenes.length > 0) {
+          setExistingImages(data.imagenes);
+        } else if (data.imagen) {
+          // Fallback a imagen legacy
+          setExistingImages([data.imagen]);
         }
       } catch (error: any) {
         console.error("Error fetching salida:", error);
@@ -271,36 +274,58 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Validar el archivo
-    const validation = ImageService.validateImageFile(file);
-    if (!validation.isValid) {
+    // Validar máximo de 10 imágenes (incluyendo existentes)
+    const totalImages = existingImages.length + imageFiles.length + files.length;
+    if (totalImages > 10) {
       toast({
         title: "Error",
-        description: validation.error,
+        description: "Máximo 10 imágenes permitidas en total",
         variant: "destructive",
       });
       return;
     }
 
-    // Guardar el archivo
-    setImageFile(file);
+    // Validar cada archivo
+    const validFiles: File[] = [];
 
-    // Crear preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    files.forEach((file) => {
+      const validation = ImageService.validateImageFile(file);
+      if (!validation.isValid) {
+        toast({
+          title: "Error",
+          description: `${file.name}: ${validation.error}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      validFiles.push(file);
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Crear previews para los archivos válidos
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Guardar los archivos
+    setImageFiles((prev) => [...prev, ...validFiles]);
   };
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setExistingImageUrl(null);
-    setFormData((prev) => ({ ...prev, imagen: "" }));
+  const handleRemoveNewImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -371,34 +396,44 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
         throw new Error(error.message || "Error al actualizar la salida");
       }
 
-      // Si hay una nueva imagen, subirla a Firebase
-      if (imageFile) {
+      // Si hay nuevas imágenes para subir o se modificaron las existentes
+      if (imageFiles.length > 0 || existingImages.length > 0) {
         try {
           setIsUploadingImage(true);
-          toast({
-            title: "Subiendo imagen...",
-            description: "Por favor espera mientras se sube la imagen",
-          });
 
-          const imageUrl = await ImageService.saveSocialImage(
-            imageFile,
-            salidaId
-          );
+          let newImageUrls: string[] = [];
 
-          // Actualizar la salida con la nueva URL de la imagen
-          await fetch(`/api/salidas/${salidaId}`, {
+          // Subir nuevas imágenes si las hay
+          if (imageFiles.length > 0) {
+            toast({
+              title: "Subiendo imágenes...",
+              description: `Por favor espera mientras se suben ${imageFiles.length} imagen(es)`,
+            });
+            newImageUrls = await ImageService.saveSocialImages(imageFiles, salidaId);
+            console.log("✅ Imágenes subidas a Firebase:", newImageUrls);
+          }
+
+          // Combinar imágenes existentes con las nuevas
+          const allImageUrls = [...existingImages, ...newImageUrls];
+          console.log("📸 Total de URLs a guardar:", allImageUrls);
+
+          // Actualizar la salida con todas las URLs de imágenes
+          const response = await fetch(`/api/salidas/${salidaId}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ imagen: imageUrl }),
+            body: JSON.stringify({ imagenes: allImageUrls }),
           });
+
+          const result = await response.json();
+          console.log("💾 Respuesta del servidor:", result);
         } catch (imageError) {
-          console.error("Error uploading image:", imageError);
+          console.error("Error uploading images:", imageError);
           toast({
             title: "Advertencia",
             description:
-              "La salida se actualizó pero hubo un error al subir la imagen",
+              "La salida se actualizó pero hubo un error al subir las imágenes",
             variant: "destructive",
           });
         } finally {
@@ -414,7 +449,8 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        router.push("/outings");
+        // Redirigir a la página de detalles de la salida actualizada
+        router.push(`/outings/${salidaId}`);
         router.refresh();
       }
     } catch (error: any) {
@@ -724,64 +760,105 @@ export function EditOutingForm({ salidaId, onSuccess }: EditOutingFormProps) {
         </div>
       </div>
 
-      {/* Imagen */}
+      {/* Imágenes */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Imagen</h3>
+        <h3 className="text-lg font-semibold">Imágenes</h3>
         <div className="space-y-2">
-          <Label htmlFor="imagen">Imagen de la Salida</Label>
+          <Label htmlFor="imagen">Imágenes de la Salida</Label>
 
-          {!imagePreview ? (
-            <div className="flex items-center gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById("imagen")?.click()}
-                disabled={isLoading}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Seleccionar Imagen
-              </Button>
-              <Input
-                id="imagen"
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <p className="text-sm text-muted-foreground">
-                JPG, PNG o WebP (máx. 5MB)
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="relative w-full max-w-md aspect-video rounded-lg overflow-hidden border">
-                <Image
-                  src={imagePreview}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={handleRemoveImage}
-                  disabled={isLoading}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById("imagen")?.click()}
+              disabled={isLoading || (existingImages.length + imageFiles.length >= 10)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {existingImages.length > 0 || imageFiles.length > 0 ? "Agregar más imágenes" : "Seleccionar Imágenes"}
+            </Button>
+            <Input
+              id="imagen"
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={handleImageChange}
+              className="hidden"
+              multiple
+            />
+            <p className="text-sm text-muted-foreground">
+              JPG, PNG o WebP (máx. 5MB cada una, hasta 10 imágenes)
+            </p>
+          </div>
+
+          {/* Imágenes existentes */}
+          {existingImages.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Imágenes actuales:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {existingImages.map((imageUrl, index) => (
+                  <div key={`existing-${index}`} className="relative aspect-video rounded-lg overflow-hidden border">
+                    <Image
+                      src={imageUrl}
+                      alt={`Imagen existente ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => handleRemoveExistingImage(index)}
+                      disabled={isLoading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    {index === 0 && (
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        Principal
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              {imageFile ? (
-                <p className="text-sm text-muted-foreground">
-                  Nueva imagen lista para subir
-                </p>
-              ) : existingImageUrl ? (
-                <p className="text-sm text-muted-foreground">
-                  Imagen actual (selecciona una nueva para reemplazarla)
-                </p>
-              ) : null}
             </div>
+          )}
+
+          {/* Nuevas imágenes para subir */}
+          {imagePreviews.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Nuevas imágenes para subir:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {imagePreviews.map((preview, index) => (
+                  <div key={`new-${index}`} className="relative aspect-video rounded-lg overflow-hidden border border-green-500">
+                    <Image
+                      src={preview}
+                      alt={`Nueva imagen ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => handleRemoveNewImage(index)}
+                      disabled={isLoading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <div className="absolute bottom-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                      Nueva
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(existingImages.length > 0 || imagePreviews.length > 0) && (
+            <p className="text-sm text-muted-foreground">
+              Total: {existingImages.length + imagePreviews.length} imagen(es). La primera será la imagen principal.
+            </p>
           )}
         </div>
       </div>

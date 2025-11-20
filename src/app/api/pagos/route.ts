@@ -80,32 +80,44 @@ export async function POST(req: NextRequest) {
     // Si no viene amount y es una academia, podrías obtener el precio de la academia
     // (implementar lógica similar si las academias tienen precio)
 
+    // Determinar el estado inicial del pago
+    // MercadoPago se aprueba automáticamente, Transferencia requiere aprobación manual
+    const tipoFinal = tipoPago || "transferencia";
+    const estadoInicial = tipoFinal === "mercadopago" ? "aprobado" : "pendiente";
+
     // Crear el pago
     const pago = await Pago.create({
       userId: session.user.id,
       salidaId,
       academiaId,
       comprobanteUrl,
-      tipoPago: tipoPago || "transferencia",
+      tipoPago: tipoFinal,
       amount: pagoAmount || 0,
-      estado: "pendiente",
+      estado: estadoInicial,
       // Guardar nombre de la salida para tracking (persiste aunque se borre la salida)
       salidaNombre: salida?.nombre,
       // Si es academia, guardar el nombre también (implementar si necesario)
     });
 
-    // Si es una salida, crear notificación para el organizador
+    // Si es una salida, crear notificación según el tipo de pago
     if (salidaId && salida) {
+      // Si es MercadoPago (aprobado automáticamente), notificar al organizador
+      // Si es transferencia (pendiente), notificar que hay un pago por revisar
+      const notificationType = tipoFinal === "mercadopago" ? "payment_approved" : "payment_pending";
+      const notificationMessage = tipoFinal === "mercadopago"
+        ? `${session.user.firstname} ${session.user.lastname} ha pagado por MercadoPago ✅`
+        : `${session.user.firstname} ${session.user.lastname} ha enviado el comprobante de pago`;
+
       await Notificacion.create({
         userId: salida.creador_id._id,
-        type: "payment_pending",
-        message: `${session.user.firstname} ${session.user.lastname} ha enviado el comprobante de pago`,
+        type: notificationType,
+        message: notificationMessage,
         relatedId: salidaId,
         relatedUserId: session.user.id,
         metadata: {
           salidaNombre: salida.nombre,
           userName: `${session.user.firstname} ${session.user.lastname}`,
-          shortId: salida.shortId, // Agregar shortId para navegación
+          shortId: salida.shortId,
         },
         read: false,
       });
