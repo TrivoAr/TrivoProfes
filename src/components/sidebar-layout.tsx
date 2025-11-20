@@ -26,6 +26,7 @@ import {
   CreditCard,
   LogOut,
   Settings,
+  Mountain,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { href: "/teams", label: "Equipos", icon: Users },
   { href: "/academies", label: "Academias", icon: School },
   { href: "/members", label: "Miembros", icon: UserCheck },
+  { href: "/club-trekking", label: "Club del Trekking", icon: Mountain },
   { href: "/payments", label: "Configuraciones", icon: Settings },
 ];
 

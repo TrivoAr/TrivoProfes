@@ -2,7 +2,8 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { ShareButton } from "@/components/outings/share-button";
-import { PartyPopper, Users, School, UserCheck, DollarSign, Edit, Trash2, UserPlus } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { PartyPopper, Users, School, UserCheck, DollarSign, Edit, Trash2, UserPlus, CreditCard, Banknote, Mountain } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -40,6 +41,7 @@ const getCachedStats = unstable_cache(
       const Academia = (await import("@/models/Academia")).default;
       const User = (await import("@/models/User")).default;
       const Pago = (await import("@/models/Pago")).default;
+      const ClubTrekkingMembership = (await import("@/models/ClubTrekkingMembership")).default;
 
       await connectDB();
 
@@ -49,6 +51,10 @@ const getCachedStats = unstable_cache(
         totalAcademias,
         totalMiembros,
         ingresosAprobados,
+        ingresosMercadoPago,
+        ingresosTransferencia,
+        miembrosClubActivos,
+        ingresosClubTrekking,
       ] = await Promise.all([
         SalidaSocial.countDocuments(),
         TeamSocial.countDocuments(),
@@ -56,6 +62,19 @@ const getCachedStats = unstable_cache(
         User.countDocuments(),
         Pago.aggregate([
           { $match: { estado: "aprobado" } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Pago.aggregate([
+          { $match: { estado: "aprobado", tipoPago: "mercadopago" } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Pago.aggregate([
+          { $match: { estado: "aprobado", tipoPago: "transferencia" } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        ClubTrekkingMembership.countDocuments({ estado: "activa" }),
+        Pago.aggregate([
+          { $match: { estado: "aprobado", tipoPago: "mercadopago_automatico" } },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
       ]);
@@ -66,6 +85,10 @@ const getCachedStats = unstable_cache(
         totalAcademias,
         totalMiembros,
         ingresosAprobados: ingresosAprobados[0]?.total || 0,
+        ingresosMercadoPago: ingresosMercadoPago[0]?.total || 0,
+        ingresosTransferencia: ingresosTransferencia[0]?.total || 0,
+        miembrosClubActivos,
+        ingresosClubTrekking: ingresosClubTrekking[0]?.total || 0,
       };
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -75,6 +98,10 @@ const getCachedStats = unstable_cache(
         totalAcademias: 0,
         totalMiembros: 0,
         ingresosAprobados: 0,
+        ingresosMercadoPago: 0,
+        ingresosTransferencia: 0,
+        miembrosClubActivos: 0,
+        ingresosClubTrekking: 0,
       };
     }
   },
@@ -216,6 +243,38 @@ async function getAcademiaData(userId: string) {
   } catch (error) {
     console.error("Error fetching academia data:", error);
     return null;
+  }
+}
+
+// Obtener miembros activos del Club del Trekking
+async function getClubMembers() {
+  try {
+    const { connectDB } = await import("@/lib/mongodb");
+    const ClubTrekkingMembership = (await import("@/models/ClubTrekkingMembership")).default;
+
+    await connectDB();
+
+    const memberships = await ClubTrekkingMembership.find({ estado: "activa" })
+      .populate("userId", "firstname lastname email imagen")
+      .sort({ fechaInicio: -1 })
+      .limit(10)
+      .lean();
+
+    return memberships.map((m: any) => ({
+      _id: m._id.toString(),
+      userId: m.userId._id.toString(),
+      firstname: m.userId.firstname,
+      lastname: m.userId.lastname,
+      email: m.userId.email,
+      imagen: m.userId.imagen,
+      fechaInicio: m.fechaInicio,
+      fechaFin: m.fechaFin,
+      salidasRealizadas: m.usoMensual?.salidasRealizadas || 0,
+      penalizacionActiva: m.penalizacion?.activa || false,
+    }));
+  } catch (error) {
+    console.error("Error fetching club members:", error);
+    return [];
   }
 }
 
@@ -533,9 +592,10 @@ export default async function DashboardPage() {
 
   // Dashboard para Admin (mantener el original)
   if (userRole === "admin") {
-    const [stats, revenueData] = await Promise.all([
+    const [stats, revenueData, clubMembers] = await Promise.all([
       getStats(),
-      getRevenueData()
+      getRevenueData(),
+      getClubMembers()
     ]);
 
     return (
@@ -549,7 +609,15 @@ export default async function DashboardPage() {
           <StatCard title="Equipos" value={String(stats.totalTeams)} icon={Users} />
           <StatCard title="Academias" value={String(stats.totalAcademias)} icon={School} />
           <StatCard title="Miembros Registrados" value={String(stats.totalMiembros)} icon={UserCheck} />
-          <StatCard title="Ingresos Aprobados" value={`$${stats.ingresosAprobados.toLocaleString()}`} icon={DollarSign} />
+          <StatCard title="Ingresos Totales" value={`$${stats.ingresosAprobados.toLocaleString()}`} icon={DollarSign} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 mt-4">
+          <StatCard title="Ingresos MercadoPago" value={`$${stats.ingresosMercadoPago.toLocaleString()}`} icon={CreditCard} />
+          <StatCard title="Ingresos Transferencia" value={`$${stats.ingresosTransferencia.toLocaleString()}`} icon={Banknote} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 mt-4">
+          <StatCard title="Club del Trekking" value={`${stats.miembrosClubActivos} miembros activos`} icon={Mountain} />
+          <StatCard title="Revenue Club Trekking" value={`$${stats.ingresosClubTrekking.toLocaleString()}`} icon={Mountain} />
         </div>
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
           <RevenueChart data={revenueData} />
@@ -572,6 +640,18 @@ export default async function DashboardPage() {
                         ${stats.ingresosAprobados.toLocaleString()}
                       </span>
                     </div>
+                    <div className="flex items-center justify-between border-l-2 border-blue-500 pl-3">
+                      <span className="text-xs font-medium text-muted-foreground">MercadoPago</span>
+                      <span className="text-lg font-semibold text-blue-600">
+                        ${stats.ingresosMercadoPago.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-l-2 border-orange-500 pl-3">
+                      <span className="text-xs font-medium text-muted-foreground">Transferencia</span>
+                      <span className="text-lg font-semibold text-orange-600">
+                        ${stats.ingresosTransferencia.toLocaleString()}
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Usuarios Activos</span>
                       <span className="text-2xl font-bold text-blue-600">
@@ -583,7 +663,65 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Club del Trekking</CardTitle>
+                  <CardDescription>Miembros con suscripción activa</CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/club-trekking">
+                    <Mountain className="h-4 w-4 mr-2" />
+                    Ver todos
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {clubMembers.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="text-sm">No hay miembros activos en el Club del Trekking</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {clubMembers.map((member) => (
+                    <div key={member._id} className="flex items-center justify-between border-b pb-3">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          userId={member.userId}
+                          firstName={member.firstname}
+                          lastName={member.lastname}
+                          className="h-10 w-10 rounded-full object-cover border shadow-sm"
+                          size={80}
+                        />
+                        <div>
+                          <p className="font-medium text-sm">{member.firstname} {member.lastname}</p>
+                          <p className="text-xs text-muted-foreground">{member.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-medium">{member.salidasRealizadas} salidas</p>
+                        {member.penalizacionActiva && (
+                          <span className="text-xs text-red-600">Penalizado</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {stats.miembrosClubActivos > 10 && (
+                    <p className="text-center text-sm text-muted-foreground pt-2">
+                      Mostrando 10 de {stats.miembrosClubActivos} miembros
+                    </p>
+                  )}
+                  <Button asChild variant="outline" className="w-full mt-3" size="sm">
+                    <Link href="/club-trekking">Ver todos los miembros</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Panel de Administración</CardTitle>
