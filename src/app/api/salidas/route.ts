@@ -17,10 +17,31 @@ export async function GET() {
 
     await connectDB();
 
+    // DEBUG: Log para producción
+    console.log("[DEBUG] User ID:", session.user.id);
+    console.log("[DEBUG] User ID type:", typeof session.user.id);
+
+    // Primero verificar si hay salidas en general
+    const totalSalidas = await SalidaSocial.countDocuments();
+    console.log("[DEBUG] Total salidas en DB:", totalSalidas);
+
+    // Verificar salidas del usuario
+    const salidasCount = await SalidaSocial.countDocuments({ creador_id: session.user.id });
+    console.log("[DEBUG] Salidas del usuario:", salidasCount);
+
+    // Si hay salidas pero ninguna del usuario, mostrar algunos IDs para comparar
+    if (totalSalidas > 0 && salidasCount === 0) {
+      const sampleSalida = await SalidaSocial.findOne().select('creador_id').lean();
+      console.log("[DEBUG] Sample creador_id:", sampleSalida?.creador_id);
+      console.log("[DEBUG] Sample creador_id type:", typeof sampleSalida?.creador_id);
+    }
+
     // Filtrar salidas por el usuario creador
     const salidas = await SalidaSocial.find({ creador_id: session.user.id })
       .populate("creador_id", "firstname lastname email")
       .sort({ createdAt: -1 });
+
+    console.log("[DEBUG] Salidas encontradas:", salidas.length);
 
     // Obtener conteo de pagos aprobados para cada salida
     const salidasConMiembros = await Promise.all(

@@ -131,6 +131,14 @@ export type Stats = {
   // Club del Trekking
   miembrosClubActivos: number;
   ingresosClubTrekking: number;
+  // Comisiones de Academias/Grupos
+  comisionesAcademias: {
+    ingresosBrutosAcademias: number;
+    comisionesProfesores: number;
+    comisionesTrivo: number;
+    totalAlumnosActivos: number;
+    totalGruposActivos: number;
+  };
 };
 
 export type NavItem = {

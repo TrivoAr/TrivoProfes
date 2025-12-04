@@ -3,7 +3,9 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { ShareButton } from "@/components/outings/share-button";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { PartyPopper, Users, School, UserCheck, DollarSign, Edit, Trash2, UserPlus, CreditCard, Banknote, Mountain } from "lucide-react";
+import { TeacherCommissions } from "@/components/comisiones/TeacherCommissions";
+import { AdminCommissions } from "@/components/comisiones/AdminCommissions";
+import { PartyPopper, Users, School, UserCheck, DollarSign, Edit, Trash2, UserPlus, CreditCard, Banknote, Mountain, TrendingUp } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -42,6 +44,9 @@ const getCachedStats = unstable_cache(
       const User = (await import("@/models/User")).default;
       const Pago = (await import("@/models/Pago")).default;
       const ClubTrekkingMembership = (await import("@/models/ClubTrekkingMembership")).default;
+      const Grupo = (await import("@/models/Grupo")).default;
+      const MiembroAcademia = (await import("@/models/MiembroAcademia")).default;
+      const { calculateCommissionSummary } = await import("@/utils/commissionCalculator");
 
       await connectDB();
 
@@ -79,6 +84,30 @@ const getCachedStats = unstable_cache(
         ]),
       ]);
 
+      // Calcular comisiones de academias/grupos
+      const grupos = await Grupo.find().lean();
+      let totalIngresosBrutosAcademias = 0;
+      let totalComisionesProfesores = 0;
+      let totalComisionesTrivo = 0;
+      let totalAlumnosActivos = 0;
+      let totalGruposActivos = 0;
+
+      for (const grupo of grupos) {
+        const studentCount = await MiembroAcademia.countDocuments({
+          grupo_id: grupo._id,
+          estado: "activo",
+        });
+
+        if (studentCount > 0) {
+          totalGruposActivos++;
+          const comisiones = calculateCommissionSummary(studentCount);
+          totalIngresosBrutosAcademias += comisiones.gross_income;
+          totalComisionesProfesores += comisiones.teacher_total;
+          totalComisionesTrivo += comisiones.trivo_total;
+          totalAlumnosActivos += studentCount;
+        }
+      }
+
       return {
         totalSalidas,
         totalTeams,
@@ -89,6 +118,13 @@ const getCachedStats = unstable_cache(
         ingresosTransferencia: ingresosTransferencia[0]?.total || 0,
         miembrosClubActivos,
         ingresosClubTrekking: ingresosClubTrekking[0]?.total || 0,
+        comisionesAcademias: {
+          ingresosBrutosAcademias: totalIngresosBrutosAcademias,
+          comisionesProfesores: totalComisionesProfesores,
+          comisionesTrivo: totalComisionesTrivo,
+          totalAlumnosActivos,
+          totalGruposActivos,
+        },
       };
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -102,6 +138,13 @@ const getCachedStats = unstable_cache(
         ingresosTransferencia: 0,
         miembrosClubActivos: 0,
         ingresosClubTrekking: 0,
+        comisionesAcademias: {
+          ingresosBrutosAcademias: 0,
+          comisionesProfesores: 0,
+          comisionesTrivo: 0,
+          totalAlumnosActivos: 0,
+          totalGruposActivos: 0,
+        },
       };
     }
   },
@@ -423,6 +466,11 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold mb-4">Mis Comisiones</h2>
+          <TeacherCommissions />
+        </div>
       </>
     );
   }
@@ -586,6 +634,11 @@ export default async function DashboardPage() {
             </Button>
           </CardContent>
         </Card>
+
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold mb-4">Comisiones de Grupos</h2>
+          <TeacherCommissions />
+        </div>
       </>
     );
   }
@@ -609,15 +662,42 @@ export default async function DashboardPage() {
           <StatCard title="Equipos" value={String(stats.totalTeams)} icon={Users} />
           <StatCard title="Academias" value={String(stats.totalAcademias)} icon={School} />
           <StatCard title="Miembros Registrados" value={String(stats.totalMiembros)} icon={UserCheck} />
-          <StatCard title="Ingresos Totales" value={`$${stats.ingresosAprobados.toLocaleString()}`} icon={DollarSign} />
+          <StatCard title="Ingresos Totales" value={`$${(stats.ingresosAprobados + stats.comisionesAcademias.ingresosBrutosAcademias).toLocaleString()}`} icon={DollarSign} />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 mt-4">
-          <StatCard title="Ingresos MercadoPago" value={`$${stats.ingresosMercadoPago.toLocaleString()}`} icon={CreditCard} />
-          <StatCard title="Ingresos Transferencia" value={`$${stats.ingresosTransferencia.toLocaleString()}`} icon={Banknote} />
+
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-3">Ingresos por Fuente</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard title="Salidas & Club Trekking" value={`$${stats.ingresosAprobados.toLocaleString()}`} icon={PartyPopper} />
+            <StatCard title="Academias (Bruto)" value={`$${stats.comisionesAcademias.ingresosBrutosAcademias.toLocaleString()}`} icon={School} />
+            <StatCard title="Comisiones Trivo" value={`$${stats.comisionesAcademias.comisionesTrivo.toLocaleString()}`} icon={DollarSign} />
+            <StatCard title="Comisiones Profesores" value={`$${stats.comisionesAcademias.comisionesProfesores.toLocaleString()}`} icon={Users} />
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 mt-4">
-          <StatCard title="Club del Trekking" value={`${stats.miembrosClubActivos} miembros activos`} icon={Mountain} />
-          <StatCard title="Revenue Club Trekking" value={`$${stats.ingresosClubTrekking.toLocaleString()}`} icon={Mountain} />
+
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-3">Detalles de Pago</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StatCard title="Ingresos MercadoPago" value={`$${stats.ingresosMercadoPago.toLocaleString()}`} icon={CreditCard} />
+            <StatCard title="Ingresos Transferencia" value={`$${stats.ingresosTransferencia.toLocaleString()}`} icon={Banknote} />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-3">Club del Trekking</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <StatCard title="Miembros Activos CDT" value={`${stats.miembrosClubActivos}`} icon={Mountain} />
+            <StatCard title="Revenue Club Trekking" value={`$${stats.ingresosClubTrekking.toLocaleString()}`} icon={Mountain} />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-3">Academias y Grupos</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StatCard title="Grupos Activos" value={`${stats.comisionesAcademias.totalGruposActivos}`} icon={School} />
+            <StatCard title="Alumnos en Academias" value={`${stats.comisionesAcademias.totalAlumnosActivos}`} icon={UserCheck} />
+            <StatCard title="Ingreso Mensual Academias" value={`$${stats.comisionesAcademias.ingresosBrutosAcademias.toLocaleString()}`} icon={TrendingUp} />
+          </div>
         </div>
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
           <RevenueChart data={revenueData} />
@@ -637,19 +717,25 @@ export default async function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Ingresos Totales</span>
                       <span className="text-2xl font-bold text-green-600">
+                        ${(stats.ingresosAprobados + stats.comisionesAcademias.ingresosBrutosAcademias).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-l-2 border-purple-500 pl-3">
+                      <span className="text-xs font-medium text-muted-foreground">Salidas & Club</span>
+                      <span className="text-lg font-semibold text-purple-600">
                         ${stats.ingresosAprobados.toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-l-2 border-blue-500 pl-3">
-                      <span className="text-xs font-medium text-muted-foreground">MercadoPago</span>
-                      <span className="text-lg font-semibold text-blue-600">
-                        ${stats.ingresosMercadoPago.toLocaleString()}
+                    <div className="flex items-center justify-between border-l-2 border-green-500 pl-3">
+                      <span className="text-xs font-medium text-muted-foreground">Academias (Bruto)</span>
+                      <span className="text-lg font-semibold text-green-600">
+                        ${stats.comisionesAcademias.ingresosBrutosAcademias.toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-l-2 border-orange-500 pl-3">
-                      <span className="text-xs font-medium text-muted-foreground">Transferencia</span>
-                      <span className="text-lg font-semibold text-orange-600">
-                        ${stats.ingresosTransferencia.toLocaleString()}
+                    <div className="flex items-center justify-between border-l-2 border-blue-500 pl-3">
+                      <span className="text-xs font-medium text-muted-foreground">Comisiones Trivo</span>
+                      <span className="text-lg font-semibold text-blue-600">
+                        ${stats.comisionesAcademias.comisionesTrivo.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -742,6 +828,11 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold mb-4">Comisiones de Academias y Grupos</h2>
+          <AdminCommissions />
         </div>
       </>
     );
